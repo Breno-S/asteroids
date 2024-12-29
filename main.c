@@ -38,6 +38,7 @@ typedef struct	s_PlayerShip
 {
 	Texture		texture;
 	Rectangle	currSprite;	
+	t_Circle	hitBox;
 	Vector2		CoM;
 	Vector2		pos;
 	Vector2		thrust;
@@ -49,6 +50,7 @@ typedef struct	s_PlayerShip
 Texture			rockTextures[12];
 t_PlayerShip	player = {
 	.currSprite = {0, 0, 23, 12},
+	.hitBox = {{SC_W / 2, SC_H / 2}, 6},
 	.CoM = {10, 6},
 	.pos = {SC_W / 2, SC_H / 2},
 	.maxSpeed = 320,
@@ -56,12 +58,7 @@ t_PlayerShip	player = {
 };
 float			frameTime;
 t_Bullet		bulletPool[BULLET_MAX];
-t_Rock			rockPool[ROCK_MAX] = {
-	[0] = {.pos = {0,0}, {0, 0}, 0, BIG, true},
-	[1] = {.pos = {100,100}, {0, 0}, 1, BIG, true},
-	[2] = {.pos = {200,200}, {0, 0}, 2, BIG, true},
-	[3] = {.pos = {300,300}, {0, 0}, 3, BIG, true},
-};
+t_Rock			rockPool[ROCK_MAX];
 unsigned short	bulletIdx = 0;
 
 void	accelerate()
@@ -84,14 +81,28 @@ void	updatePlayer()
 {
 	player.pos.x += player.thrust.x * frameTime;
 	player.pos.y += player.thrust.y * frameTime;
+	player.hitBox.center.x += player.thrust.x * frameTime;
+	player.hitBox.center.y += player.thrust.y * frameTime;
 	if (player.pos.x > SC_W)
+	{
 		player.pos.x = 0;
+		player.hitBox.center.x = 0;
+	}
 	if (player.pos.y > SC_H)
+	{
 		player.pos.y = 0;
+		player.hitBox.center.y = 0;
+	}
 	if (player.pos.x < 0)
+	{
 		player.pos.x = SC_W;
+		player.hitBox.center.x = SC_W;
+	}
 	if (player.pos.y < 0)
+	{
 		player.pos.y = SC_H;
+		player.hitBox.center.y = SC_H;
+	}
 }
 
 void	updateRocks()
@@ -100,12 +111,28 @@ void	updateRocks()
 	{
 		rockPool[i].pos.x += rockPool[i].vel.x * frameTime;
 		rockPool[i].pos.y += rockPool[i].vel.y * frameTime;
-		rockPool[i].pos.x += rockPool[i].vel.x * frameTime;
-		rockPool[i].pos.y += rockPool[i].vel.y * frameTime;
-		if (rockPool[i].pos.x > SC_W) rockPool[i].pos.x = 0;
-		if (rockPool[i].pos.y > SC_H) rockPool[i].pos.y = 0;
-		if (rockPool[i].pos.x < 0)    rockPool[i].pos.x = SC_W;
-		if (rockPool[i].pos.y < 0)    rockPool[i].pos.y = SC_H;
+		rockPool[i].hitBox.center.x += rockPool[i].vel.x * frameTime;
+		rockPool[i].hitBox.center.y += rockPool[i].vel.y * frameTime;
+		if (rockPool[i].pos.x > SC_W)
+		{
+			rockPool[i].pos.x = 0;
+			rockPool[i].hitBox.center.x = 0 + rockPool[i].hitBox.radius;
+		}
+		if (rockPool[i].pos.x < 0)
+		{
+			rockPool[i].pos.x = SC_W;
+			rockPool[i].hitBox.center.x = SC_W + rockPool[i].hitBox.radius;
+		}
+		if (rockPool[i].pos.y > SC_H)
+		{
+			rockPool[i].pos.y = 0;
+			rockPool[i].hitBox.center.y = 0 + rockPool[i].hitBox.radius;
+		}
+		if (rockPool[i].pos.y < 0)
+		{
+			rockPool[i].pos.y = SC_H;
+			rockPool[i].hitBox.center.y = SC_H + rockPool[i].hitBox.radius;
+		}
 	}
 }
 
@@ -181,6 +208,7 @@ void	drawPlayer()
 		player.angle,
 		WHITE
 	);
+	DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
 }
 
 void	drawBullets()
@@ -207,30 +235,6 @@ void	drawRocks()
 	}
 }
 
-void	loadHitboxes()
-{
-	for (int i = 0; i < ROCK_MAX; i++)
-	{
-		switch (rockPool[i].size)
-		{
-			case BIG:
-				rockPool[i].hitBox.center.x = rockPool[i].pos.x + 20;
-				rockPool[i].hitBox.center.y = rockPool[i].pos.y + 20;
-				rockPool[i].hitBox.radius = 20;
-				break;
-			case MEDIUM:
-				rockPool[i].hitBox.center.x = rockPool[i].pos.x + 10;
-				rockPool[i].hitBox.center.y = rockPool[i].pos.y + 10;
-				rockPool[i].hitBox.radius = 10;
-				break;
-			case SMALL:
-				rockPool[i].hitBox.center.x = rockPool[i].pos.x + 5;
-				rockPool[i].hitBox.center.y = rockPool[i].pos.y + 5;
-				rockPool[i].hitBox.radius = 5;
-		};
-	}
-}
-
 void	decayRock(unsigned short rockIdx)
 {
 	switch(rockPool[rockIdx].size)
@@ -239,17 +243,24 @@ void	decayRock(unsigned short rockIdx)
 			rockPool[rockIdx].size = MEDIUM;
 			rockPool[rockIdx].pos.x += 10;
 			rockPool[rockIdx].pos.y += 10;
+			rockPool[rockIdx].hitBox.radius /= 2;
+			rockPool[rockIdx + 2] = rockPool[rockIdx];
+			rockPool[rockIdx + 2].pos.x += 50;
+			rockPool[rockIdx + 2].hitBox.center.x += 50;
 			break;
 		case MEDIUM:
 			rockPool[rockIdx].size = SMALL;
 			rockPool[rockIdx].pos.x += 5;
 			rockPool[rockIdx].pos.y += 5;
+			rockPool[rockIdx].hitBox.radius /= 2;
+			rockPool[rockIdx + 1] = rockPool[rockIdx];
+			rockPool[rockIdx + 1].pos.x += 50;
+			rockPool[rockIdx + 1].hitBox.center.x += 50;
 			break;
 		case SMALL:
 			rockPool[rockIdx].isLive = false;
-			break;
+			return;
 	}
-	rockPool[rockIdx].hitBox.radius /= 2;
 }
 
 void	handleBulletRockCollisions()
@@ -269,7 +280,46 @@ void	handleBulletRockCollisions()
 			}
 		}
 	}
-	return false;
+}
+
+void	handlePlayerRockCollisions()
+{
+	for (int i = 0; i < ROCK_MAX; i++)
+	{
+		if (rockPool[i].isLive)
+			if (CheckCollisionCircles(player.hitBox.center, player.hitBox.radius, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
+				decayRock(i);
+	}
+}
+
+void	spawnRocks()
+{
+	static const Rectangle	spawnAreas[4] = {
+		{0, 0, SC_W, 80},
+		{SC_W - 80, 0, SC_W, SC_H},
+		{0, SC_H - 80, SC_W, SC_H},
+		{0, 0, 80, SC_H}
+	};
+	static struct {unsigned n: 2;} idx = {};
+
+	for (int i = 0; i < ROCK_MAX; i += 4)
+	{
+		rockPool[i] = (t_Rock){
+			.pos = {
+				GetRandomValue(spawnAreas[idx.n].x, spawnAreas[idx.n].width), 
+				GetRandomValue(spawnAreas[idx.n].y, spawnAreas[idx.n].height)
+			},
+			.textureIdx = GetRandomValue(0, 3),
+			.size = BIG,
+			.isLive = true
+		};
+		rockPool[i].hitBox.center.x = rockPool[i].pos.x + 20;
+		rockPool[i].hitBox.center.y = rockPool[i].pos.y + 20;
+		rockPool[i].hitBox.radius = 20;
+		rockPool[i].vel.x = GetRandomValue(-30, 30);
+		rockPool[i].vel.y = GetRandomValue(-30, 30);
+		idx.n++;
+	}
 }
 
 int	main(void)
@@ -277,7 +327,7 @@ int	main(void)
 	InitWindow(SC_W, SC_H, "Asteroids");
 	SetTargetFPS(60);
 	loadAllTextures();
-	loadHitboxes();
+	spawnRocks();
 
 	while (!WindowShouldClose())
 	{
@@ -297,6 +347,7 @@ int	main(void)
 			shoot();
 
 		handleBulletRockCollisions();
+		handlePlayerRockCollisions();
 
 		updatePlayer();
 		updateBullets();
@@ -304,6 +355,8 @@ int	main(void)
 
 		BeginDrawing();
 			ClearBackground(BLACK);
+			//DrawLine(SC_W/2, 0, SC_W/2, SC_H, GREEN);
+			//DrawLine(0, SC_H/2, SC_W, SC_H/2, GREEN);
 			drawPlayer();
 			drawBullets();
 			drawRocks();
