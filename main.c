@@ -45,6 +45,7 @@ typedef struct	s_PlayerShip
 	float		angle;
 	float		accel;
 	float		maxSpeed;
+	bool		isLive;
 }	t_PlayerShip;
 
 Texture			rockTextures[12];
@@ -54,12 +55,22 @@ t_PlayerShip	player = {
 	.CoM = {10, 6},
 	.pos = {SC_W / 2, SC_H / 2},
 	.maxSpeed = 320,
-	.accel = 320
+	.accel = 320,
+	.isLive = true
 };
 float			frameTime;
 t_Bullet		bulletPool[BULLET_MAX];
 t_Rock			rockPool[ROCK_MAX];
 unsigned short	bulletIdx = 0;
+
+void	decelerate()
+{
+	short int	speed;
+	if (Vector2Length(player.thrust) > 0)
+	{
+		player.thrust = Vector2Scale(player.thrust, 0.99);
+	}
+}
 
 void	accelerate()
 {
@@ -200,15 +211,18 @@ void	loadAllTextures()
 
 void	drawPlayer()
 {
-	DrawTexturePro(
-		player.texture,
-		player.currSprite,
-		(Rectangle){player.pos.x, player.pos.y, player.currSprite.width, player.currSprite.height},
-		player.CoM,
-		player.angle,
-		WHITE
-	);
-	DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
+	if (player.isLive)
+	{
+		DrawTexturePro(
+			player.texture,
+			player.currSprite,
+			(Rectangle){player.pos.x, player.pos.y, player.currSprite.width, player.currSprite.height},
+			player.CoM,
+			player.angle,
+			WHITE
+		);
+		DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
+	}
 }
 
 void	drawBullets()
@@ -244,18 +258,20 @@ void	decayRock(unsigned short rockIdx)
 			rockPool[rockIdx].pos.x += 10;
 			rockPool[rockIdx].pos.y += 10;
 			rockPool[rockIdx].hitBox.radius /= 2;
+			rockPool[rockIdx].vel = Vector2Scale(rockPool[rockIdx].vel, 2);
+			rockPool[rockIdx].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(-90, -1) * DEG2RAD);
 			rockPool[rockIdx + 2] = rockPool[rockIdx];
-			rockPool[rockIdx + 2].pos.x += 50;
-			rockPool[rockIdx + 2].hitBox.center.x += 50;
+			rockPool[rockIdx + 2].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(1, 90) * DEG2RAD);
 			break;
 		case MEDIUM:
 			rockPool[rockIdx].size = SMALL;
 			rockPool[rockIdx].pos.x += 5;
 			rockPool[rockIdx].pos.y += 5;
 			rockPool[rockIdx].hitBox.radius /= 2;
+			rockPool[rockIdx].vel = Vector2Scale(rockPool[rockIdx].vel, 2);
+			rockPool[rockIdx].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(-90, -1) * DEG2RAD);
 			rockPool[rockIdx + 1] = rockPool[rockIdx];
-			rockPool[rockIdx + 1].pos.x += 50;
-			rockPool[rockIdx + 1].hitBox.center.x += 50;
+			rockPool[rockIdx + 1].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(1, 90) * DEG2RAD);
 			break;
 		case SMALL:
 			rockPool[rockIdx].isLive = false;
@@ -288,7 +304,10 @@ void	handlePlayerRockCollisions()
 	{
 		if (rockPool[i].isLive)
 			if (CheckCollisionCircles(player.hitBox.center, player.hitBox.radius, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
+			{
+				player.isLive = false;
 				decayRock(i);
+			}
 	}
 }
 
@@ -316,8 +335,8 @@ void	spawnRocks()
 		rockPool[i].hitBox.center.x = rockPool[i].pos.x + 20;
 		rockPool[i].hitBox.center.y = rockPool[i].pos.y + 20;
 		rockPool[i].hitBox.radius = 20;
-		rockPool[i].vel.x = GetRandomValue(-30, 30);
-		rockPool[i].vel.y = GetRandomValue(-30, 30);
+		rockPool[i].vel.x = GetRandomValue(GetRandomValue(-30, -20), GetRandomValue(20, 30));
+		rockPool[i].vel.y = GetRandomValue(GetRandomValue(-30, -20), GetRandomValue(20, 30));
 		idx.n++;
 	}
 }
@@ -332,19 +351,26 @@ int	main(void)
 	while (!WindowShouldClose())
 	{
 		frameTime = GetFrameTime();
-		player.currSprite.x = 0;
 
-		if (IsKeyDown(KEY_D))
-			player.angle += 180 * frameTime;
-		if (IsKeyDown(KEY_A))
-			player.angle -= 180 * frameTime;
-		if (IsKeyDown(KEY_W))
+		if (player.isLive)
 		{
-			player.currSprite.x = 23;
-			accelerate();
+			if (IsKeyDown(KEY_D))
+				player.angle += 210 * frameTime;
+			if (IsKeyDown(KEY_A))
+				player.angle -= 210 * frameTime;
+			if (IsKeyDown(KEY_W))
+			{
+				player.currSprite.x = 23;
+				accelerate();
+			}
+			else
+			{
+				player.currSprite.x = 0;
+				decelerate();
+			}
+			if (IsKeyPressed(KEY_SPACE))
+				shoot();
 		}
-		if (IsKeyPressed(KEY_SPACE))
-			shoot();
 
 		handleBulletRockCollisions();
 		handlePlayerRockCollisions();
@@ -364,4 +390,4 @@ int	main(void)
 	}
 	CloseWindow();
 	return (0);
-}
+	}
