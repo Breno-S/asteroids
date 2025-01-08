@@ -1,11 +1,11 @@
 #include "raylib.h"
 #include "raymath.h"
-#include "math.h"
+#include <stdio.h>
 
 #define SC_W 640
 #define SC_H 480
 
-#define BULLET_MAX 6
+#define BULLET_MAX 4
 #define ROCK_MAX 64
 
 enum e_Size { BIG, MEDIUM, SMALL };
@@ -50,25 +50,26 @@ typedef struct	s_PlayerShip
 
 Texture			rockTextures[12];
 t_PlayerShip	player = {
-	.currSprite = {0, 0, 23, 12},
-	.hitBox = {{SC_W / 2, SC_H / 2}, 6},
-	.CoM = {10, 6},
+	.currSprite = {0, 0, 21, 10},
+	.hitBox = {{SC_W / 2, SC_H / 2}, 5},
+	.CoM = {9, 5},
 	.pos = {SC_W / 2, SC_H / 2},
-	.maxSpeed = 320,
-	.accel = 320,
+	.maxSpeed = 250,
+	.accel = 150,
 	.isLive = true
 };
 float			frameTime;
 t_Bullet		bulletPool[BULLET_MAX];
 t_Rock			rockPool[ROCK_MAX];
-unsigned short	bulletIdx = 0;
+unsigned long	gameScore;
+unsigned short	numLives = 3;
+unsigned short	oneUpMeter;
 
 void	decelerate()
 {
-	short int	speed;
 	if (Vector2Length(player.thrust) > 0)
 	{
-		player.thrust = Vector2Scale(player.thrust, 0.99);
+		player.thrust = Vector2Subtract(player.thrust, Vector2Scale(player.thrust, 0.2 * frameTime));
 	}
 }
 
@@ -124,25 +125,25 @@ void	updateRocks()
 		rockPool[i].pos.y += rockPool[i].vel.y * frameTime;
 		rockPool[i].hitBox.center.x += rockPool[i].vel.x * frameTime;
 		rockPool[i].hitBox.center.y += rockPool[i].vel.y * frameTime;
-		if (rockPool[i].pos.x > SC_W)
+		if (rockPool[i].hitBox.center.x > SC_W)
 		{
-			rockPool[i].pos.x = 0;
-			rockPool[i].hitBox.center.x = 0 + rockPool[i].hitBox.radius;
+			rockPool[i].pos.x = 0 - rockPool[i].hitBox.radius;
+			rockPool[i].hitBox.center.x = 0;
 		}
-		if (rockPool[i].pos.x < 0)
+		if (rockPool[i].hitBox.center.x < 0)
 		{
-			rockPool[i].pos.x = SC_W;
-			rockPool[i].hitBox.center.x = SC_W + rockPool[i].hitBox.radius;
+			rockPool[i].pos.x = SC_W - rockPool[i].hitBox.radius;
+			rockPool[i].hitBox.center.x = SC_W;
 		}
-		if (rockPool[i].pos.y > SC_H)
+		if (rockPool[i].hitBox.center.y > SC_H)
 		{
-			rockPool[i].pos.y = 0;
-			rockPool[i].hitBox.center.y = 0 + rockPool[i].hitBox.radius;
+			rockPool[i].pos.y = 0 - rockPool[i].hitBox.radius;
+			rockPool[i].hitBox.center.y = 0;
 		}
-		if (rockPool[i].pos.y < 0)
+		if (rockPool[i].hitBox.center.y < 0)
 		{
-			rockPool[i].pos.y = SC_H;
-			rockPool[i].hitBox.center.y = SC_H + rockPool[i].hitBox.radius;
+			rockPool[i].pos.y = SC_H - rockPool[i].hitBox.radius;
+			rockPool[i].hitBox.center.y = SC_H;
 		}
 	}
 }
@@ -168,25 +169,36 @@ void	updateBullets()
 
 void	shoot()
 {
-	float	bulletSpeed = 1.25 * player.maxSpeed;
-	Vector2	spawn = {
+	static unsigned	short	bulletIdx = 0;
+	bool					isFull = true;
+	float					bulletSpeed = player.maxSpeed;
+	Vector2					spawn = {
 		.x = player.pos.x + 13 * cosf(player.angle * DEG2RAD),
 		.y = player.pos.y + 13 * sinf(player.angle * DEG2RAD)
 	};
-	Vector2	velocity = {
+	Vector2					velocity = {
 		.x = bulletSpeed * cosf(player.angle *DEG2RAD) + player.thrust.x,
 		.y = bulletSpeed * sinf(player.angle *DEG2RAD) + player.thrust.y
 	};
 
-	bulletPool[bulletIdx].pos.x = spawn.x;
-	bulletPool[bulletIdx].pos.y = spawn.y;
-	bulletPool[bulletIdx].vel.x = velocity.x;
-	bulletPool[bulletIdx].vel.y = velocity.y;
-	bulletPool[bulletIdx].ttl = 1;
-	bulletPool[bulletIdx].isLive = true;
-	bulletIdx++;
-	if (bulletIdx == BULLET_MAX)
-		bulletIdx = 0;
+	for (int i = 0; i < BULLET_MAX; i++)
+	{
+		if (bulletPool[i].isLive == false)
+			isFull = false;
+	}
+
+	if (!isFull)
+	{
+		bulletPool[bulletIdx].pos.x = spawn.x;
+		bulletPool[bulletIdx].pos.y = spawn.y;
+		bulletPool[bulletIdx].vel.x = velocity.x;
+		bulletPool[bulletIdx].vel.y = velocity.y;
+		bulletPool[bulletIdx].ttl = 1.2;
+		bulletPool[bulletIdx].isLive = true;
+		bulletIdx++;
+		if (bulletIdx == BULLET_MAX)
+			bulletIdx = 0;
+	}
 }
 
 void	loadAllTextures()
@@ -221,7 +233,7 @@ void	drawPlayer()
 			player.angle,
 			WHITE
 		);
-		DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
+		//DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
 	}
 }
 
@@ -244,10 +256,36 @@ void	drawRocks()
 				rockPool[i].pos.y,
 				WHITE
 			);
-			DrawCircleLinesV(rockPool[i].hitBox.center, rockPool[i].hitBox.radius, RED);
+			//char	stats[32];
+			//DrawCircleLinesV(rockPool[i].hitBox.center, rockPool[i].hitBox.radius, RED);
+			//sprintf(stats, "%.2f", Vector2Length(rockPool[i].vel)); 
+			//DrawText(stats, rockPool[i].pos.x, rockPool[i].pos.y + 30, 10, YELLOW);
 		}
 	}
 }
+
+void	drawScore()
+{
+	char	scoreStr[15];
+	sprintf(scoreStr, "%12.2d", gameScore);
+	DrawText(scoreStr, 0, 4, 26, (Color){255, 255, 255, 127});
+}
+
+void	drawLives()
+{
+	for (int i = 0; i < numLives; i++)
+	{
+		DrawTexturePro(
+			player.texture,
+			(Rectangle){0, 0, 21, 10},
+			(Rectangle){90 + 10 * i, 42, player.currSprite.width, player.currSprite.height},
+			player.CoM,
+			-90,
+			(Color){255, 255, 255, 127}
+		);
+	}
+}
+	
 
 void	decayRock(unsigned short rockIdx)
 {
@@ -258,23 +296,31 @@ void	decayRock(unsigned short rockIdx)
 			rockPool[rockIdx].pos.x += 10;
 			rockPool[rockIdx].pos.y += 10;
 			rockPool[rockIdx].hitBox.radius /= 2;
-			rockPool[rockIdx].vel = Vector2Scale(rockPool[rockIdx].vel, 2);
-			rockPool[rockIdx].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(-90, -1) * DEG2RAD);
 			rockPool[rockIdx + 2] = rockPool[rockIdx];
-			rockPool[rockIdx + 2].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(1, 90) * DEG2RAD);
+			rockPool[rockIdx].vel = Vector2Scale(rockPool[rockIdx].vel, 0.25 * GetRandomValue(3, 6));
+			rockPool[rockIdx].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(-90, 90) * DEG2RAD);
+			rockPool[rockIdx + 2].vel = Vector2Scale(rockPool[rockIdx + 2].vel, 0.25 * GetRandomValue(3, 6));
+			rockPool[rockIdx + 2].vel = Vector2Rotate(rockPool[rockIdx + 2].vel, GetRandomValue(-90, 90) * DEG2RAD);
+			gameScore += 20;
+			oneUpMeter += 20;
 			break;
 		case MEDIUM:
 			rockPool[rockIdx].size = SMALL;
 			rockPool[rockIdx].pos.x += 5;
 			rockPool[rockIdx].pos.y += 5;
 			rockPool[rockIdx].hitBox.radius /= 2;
-			rockPool[rockIdx].vel = Vector2Scale(rockPool[rockIdx].vel, 2);
-			rockPool[rockIdx].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(-90, -1) * DEG2RAD);
 			rockPool[rockIdx + 1] = rockPool[rockIdx];
-			rockPool[rockIdx + 1].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(1, 90) * DEG2RAD);
+			rockPool[rockIdx].vel = Vector2Scale(rockPool[rockIdx].vel, 0.25 * GetRandomValue(3, 6));
+			rockPool[rockIdx].vel = Vector2Rotate(rockPool[rockIdx].vel, GetRandomValue(-180, 180) * DEG2RAD);
+			rockPool[rockIdx + 1].vel = Vector2Scale(rockPool[rockIdx + 1].vel, 0.25 * GetRandomValue(3, 6));
+			rockPool[rockIdx + 1].vel = Vector2Rotate(rockPool[rockIdx + 1].vel, GetRandomValue(-180, 180) * DEG2RAD);
+			gameScore += 50;
+			oneUpMeter += 50;
 			break;
 		case SMALL:
 			rockPool[rockIdx].isLive = false;
+			gameScore += 100;
+			oneUpMeter += 100;
 			return;
 	}
 }
@@ -302,10 +348,11 @@ void	handlePlayerRockCollisions()
 {
 	for (int i = 0; i < ROCK_MAX; i++)
 	{
-		if (rockPool[i].isLive)
+		if (rockPool[i].isLive && player.isLive)
 			if (CheckCollisionCircles(player.hitBox.center, player.hitBox.radius, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
 			{
 				player.isLive = false;
+				numLives--;
 				decayRock(i);
 			}
 	}
@@ -321,7 +368,7 @@ void	spawnRocks()
 	};
 	static struct {unsigned n: 2;} idx = {};
 
-	for (int i = 0; i < ROCK_MAX; i += 4)
+	for (int i = 0; i < 16; i += 4)
 	{
 		rockPool[i] = (t_Rock){
 			.pos = {
@@ -335,8 +382,16 @@ void	spawnRocks()
 		rockPool[i].hitBox.center.x = rockPool[i].pos.x + 20;
 		rockPool[i].hitBox.center.y = rockPool[i].pos.y + 20;
 		rockPool[i].hitBox.radius = 20;
-		rockPool[i].vel.x = GetRandomValue(GetRandomValue(-30, -20), GetRandomValue(20, 30));
-		rockPool[i].vel.y = GetRandomValue(GetRandomValue(-30, -20), GetRandomValue(20, 30));
+		if (GetRandomValue(0, 1))
+		{
+			rockPool[i].vel.x = GetRandomValue(-40, -30);
+			rockPool[i].vel.y = GetRandomValue(-40, -30);
+		}
+		else
+		{
+			rockPool[i].vel.x = GetRandomValue(30, 40);
+			rockPool[i].vel.y = GetRandomValue(30, 40);
+		}
 		idx.n++;
 	}
 }
@@ -360,7 +415,7 @@ int	main(void)
 				player.angle -= 210 * frameTime;
 			if (IsKeyDown(KEY_W))
 			{
-				player.currSprite.x = 23;
+				player.currSprite.x = 21;
 				accelerate();
 			}
 			else
@@ -375,6 +430,11 @@ int	main(void)
 		handleBulletRockCollisions();
 		handlePlayerRockCollisions();
 
+		if (oneUpMeter > 10000)
+		{
+			numLives++;
+			oneUpMeter -= 10000;
+		}
 		updatePlayer();
 		updateBullets();
 		updateRocks();
@@ -386,8 +446,10 @@ int	main(void)
 			drawPlayer();
 			drawBullets();
 			drawRocks();
+			drawScore();
+			drawLives();
 		EndDrawing();
 	}
 	CloseWindow();
 	return (0);
-	}
+}
