@@ -16,9 +16,11 @@ typedef struct	s_GameState
 	unsigned long		score;
 	float				deathTime;
 	float				cleanTime;
+	float				hyperspaceTime;
 	unsigned short		numLives;
 	unsigned short		oneUpMeter;
 	unsigned short		rockCount;
+	unsigned short		rocksToSpawn;
 	enum e_GameScreen	currentScreen;
 }	t_GameState;
 
@@ -58,19 +60,21 @@ typedef struct	s_PlayerShip
 	float		accel;
 	float		maxSpeed;
 	bool		isLive;
+	bool		inHyperspace;
 }	t_PlayerShip;
 
 Texture			rockTextures[12];
 t_GameState		gameState = {
 	.numLives = 3,
 	.currentScreen = TITLE,
+	.rocksToSpawn = 4,
 };
 t_PlayerShip	player = {
 	.currSprite = {0, 0, 21, 10},
 	.hitBox = {{SC_W / 2, SC_H / 2}, 5},
 	.CoM = {9, 5},
 	.pos = {SC_W / 2, SC_H / 2},
-	.maxSpeed = 250,
+	.maxSpeed = 200,
 	.accel = 150,
 };
 float			frameTime;
@@ -132,6 +136,23 @@ void	shoot()
 		if (bulletIdx == BULLET_MAX)
 			bulletIdx = 0;
 	}
+}
+
+void	enterHyperspace()
+{
+	gameState.hyperspaceTime = GetTime();
+	player.inHyperspace = true;
+}
+
+void	exitHyperspace()
+{
+	player.vel.x = 0;
+	player.vel.y = 0;
+	player.pos.x = GetRandomValue(40, 600);
+	player.pos.y = GetRandomValue(40, 440);
+	player.hitBox.center.x = player.pos.x;
+	player.hitBox.center.y = player.pos.y;
+	player.inHyperspace = false;
 }
 
 void	playerDie()
@@ -268,7 +289,7 @@ void	loadAllTextures()
 
 void	drawPlayer()
 {
-	if (player.isLive)
+	if (player.isLive && !player.inHyperspace)
 	{
 		DrawTexturePro(
 			player.texture,
@@ -422,7 +443,6 @@ void	handlePlayerRockCollisions()
 	}
 }
 
-
 void	spawnRocks()
 {
 	static const Rectangle	spawnAreas[4] = {
@@ -435,7 +455,7 @@ void	spawnRocks()
 
 	if (GetTime() - gameState.cleanTime > 5)
 	{
-		for (int i = 0; i < 64; i += 4)
+		for (int i = 0; i < gameState.rocksToSpawn * 4; i += 4)
 		{
 			rockPool[i] = (t_Rock){
 				.pos = {
@@ -454,6 +474,8 @@ void	spawnRocks()
 			idx.n++;
 			gameState.rockCount++;
 		}
+		if (gameState.rocksToSpawn < ROCK_MAX / 4)
+			gameState.rocksToSpawn += 2;
 	}
 }
 
@@ -464,6 +486,7 @@ void	initSession()
 		rockPool[i].isLive = 0;
 	}
 	gameState.rockCount = 0;
+	gameState.rocksToSpawn = 4;
 	gameState.numLives = 3;
 	gameState.score = 0;
 	gameState.oneUpMeter = 0;
@@ -475,9 +498,9 @@ void	initSession()
 void	playerHandleInputs()
 {
 	if (IsKeyDown(KEY_D))
-		player.angle += 210 * frameTime;
+		player.angle += 220 * frameTime;
 	if (IsKeyDown(KEY_A))
-		player.angle -= 210 * frameTime;
+		player.angle -= 220 * frameTime;
 	if (IsKeyDown(KEY_W))
 	{
 		player.currSprite.x = 21;
@@ -488,8 +511,12 @@ void	playerHandleInputs()
 		player.currSprite.x = 0;
 		decelerate();
 	}
-	if (IsKeyPressed(KEY_SPACE))
+	if (IsKeyPressed(KEY_J))
 		shoot();
+	if (IsKeyPressed(KEY_K))
+	{
+		enterHyperspace();
+	}
 }
 
 int	main(void)
@@ -511,8 +538,14 @@ int	main(void)
 			case GAME:
 				if (player.isLive)
 				{
-					playerHandleInputs();
-					handlePlayerRockCollisions();
+					if (!player.inHyperspace)
+					{
+						playerHandleInputs();
+						handlePlayerRockCollisions();
+					}
+					else
+						if (GetTime() - gameState.hyperspaceTime > 2)
+							exitHyperspace();
 				}
 				else
 				{
@@ -521,6 +554,7 @@ int	main(void)
 					else
 						gameState.currentScreen = END;
 				}
+
 				handleBulletRockCollisions();
 				if (gameState.oneUpMeter > 10000)
 				{
@@ -528,7 +562,9 @@ int	main(void)
 					gameState.oneUpMeter -= 10000;
 				}
 				if (gameState.rockCount == 0)
+				{
 					spawnRocks();
+				}
 
 				updatePlayer();
 				updateBullets();
@@ -547,7 +583,6 @@ int	main(void)
 				if (gameState.rockCount == 0)
 					spawnRocks();
 
-				updatePlayer();
 				updateBullets();
 				updateRocks();
 				break;
@@ -571,11 +606,9 @@ int	main(void)
 					drawLives();
 					break;
 				case END:
-					drawPlayer();
 					drawBullets();
 					drawRocks();
 					drawScore();
-					drawLives();
 					DrawText("GAME OVER", SC_W/2 - 150, SC_H/2 - 30, 50, (Color){127, 127, 127, 255});
 					break;
 			};
