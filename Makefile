@@ -1,5 +1,5 @@
 NAME	= game
-SRC		= main.c
+SRC		= main.c explosions.c
 
 CC		= cc
 CFLAGS	= -Wall -Wextra #-Werror

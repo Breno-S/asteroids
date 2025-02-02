@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "raymath.h"
+#include "explosions.h"
 #include <stdio.h>
 
 /*********************************** MACROS ***********************************/
@@ -43,7 +44,7 @@ typedef struct	s_Rock
 	Vector2		pos;
 	Vector2		vel;
 	int			textureIdx;
-	int			size;
+	enum e_Size	size;
 	bool		isLive;
 }	t_Rock;
 
@@ -94,13 +95,13 @@ t_GameState		gameState = {
 t_PlayerShip	player = {
 	.currSprite = {0, 0, 21, 10},
 	.hitBox = {{SC_W / 2, SC_H / 2}, 5},
-	.CoM = {9, 5},
+	.CoM = {10, 5},
 	.pos = {SC_W / 2, SC_H / 2},
-	.maxSpeed = 220,
+	.maxSpeed = 250,
 	.accel = 150,
 };
 t_Saucer	mdSaucer = {
-	.hitBox = {{112, 108}, 10},
+	.hitBox.radius = 10,
 	.speed = 70
 };
 float			frameTime;
@@ -137,7 +138,7 @@ void	playerShoot()
 {
 	static unsigned	short	bulletIdx = 0;
 	bool					isFull = true;
-	float					bulletSpeed = player.maxSpeed * 1;
+	float					bulletSpeed = player.maxSpeed;
 
 	for (int i = 0; i < BULLET_MAX; i++)
 		if (bulletPool[i].isLive == false)
@@ -191,7 +192,7 @@ void	enterHyperspace()
 
 void	exitHyperspace()
 {
-	if (GetTime() - gameState.hyperspaceTime > 2)
+	if (GetTime() - gameState.hyperspaceTime > 1.5)
 	{
 		player.vel.x = 0;
 		player.vel.y = 0;
@@ -205,6 +206,7 @@ void	exitHyperspace()
 
 void	playerDie()
 {
+		explodeAt(player.hitBox.center);
 		player.isLive = false;
 		player.vel.x = 0;
 		player.vel.y = 0;
@@ -218,6 +220,7 @@ void	playerDie()
 
 void	mdSaucerDie()
 {
+	explodeAt(mdSaucer.hitBox.center);
 	mdSaucer.isLive = false;
 }
 
@@ -397,7 +400,7 @@ void	loadAllTextures()
 
 	player.texture = LoadTexture("resources/Ship.png");
 	mdSaucer.texture = LoadTexture("resources/Saucer-md.png");
-	//smallSaucerTexture = LoadTexture("resources/Saucer-sm.png");
+	//smSaucerTexture = LoadTexture("resources/Saucer-sm.png");
 }
 
 void	drawPlayer()
@@ -510,6 +513,7 @@ void	scoreAdd(unsigned short points)
 
 void	decayRock(unsigned short rockIdx, bool	shouldScore)
 {
+	explodeAt(rockPool[rockIdx].hitBox.center);
 	switch(rockPool[rockIdx].size)
 	{
 		case BIG:
@@ -547,7 +551,7 @@ void	decayRock(unsigned short rockIdx, bool	shouldScore)
 			gameState.rockCount--;
 			if (gameState.rockCount == 0)
 				gameState.cleanTime = GetTime();
-			return;
+			break;
 	}
 }
 
@@ -565,6 +569,7 @@ void	handlePlayerBulletCollisions()
 					{
 						bulletPool[i].isLive = false;
 						decayRock(j, true);
+						spawnMdSaucer();
 					}
 				}
 			}
@@ -712,7 +717,7 @@ void	spawnMdSaucer()
 	mdSaucer.pos.y = GetRandomValue(0, SC_H);
 	mdSaucer.vel.y = 0;
 	mdSaucer.hitBox.center.x = mdSaucer.pos.x + 12;
-	mdSaucer.hitBox.center.y = mdSaucer.pos.y + 8;
+	mdSaucer.hitBox.center.y = mdSaucer.pos.y + 9;
 	mdSaucer.spawnTime = GetTime();
 	mdSaucer.isLive = true;
 }
@@ -721,6 +726,7 @@ void	initSession()
 {
 	for (int i = 0; i < ROCK_MAX; i++)
 		rockPool[i].isLive = 0;
+	mdSaucer.isLive = 0;
 	gameState.rockCount = 0;
 	gameState.rocksToSpawn = 4;
 	gameState.numLives = 3;
@@ -747,6 +753,8 @@ void	playerHandleInputs()
 	if (IsKeyPressed(KEY_K))
 		enterHyperspace();
 }
+
+/************************************ MAIN ************************************/
 
 int	main(void)
 {
@@ -799,6 +807,7 @@ int	main(void)
 				updateMdSaucer();
 				updateBullets();
 				updateRocks();
+				updateExplosions();
 				break;
 			case END:
 			{
@@ -808,8 +817,10 @@ int	main(void)
 				if (gameState.rockCount == 0)
 					spawnRocks();
 
+				updateMdSaucer();
 				updateBullets();
 				updateRocks();
+				updateExplosions();
 				break;
 			}
 		}
@@ -830,11 +841,14 @@ int	main(void)
 					drawMdSaucer();
 					drawScore();
 					drawLives();
+					drawExplosions();
 					break;
 				case END:
 					drawBullets();
 					drawRocks();
+					drawMdSaucer();
 					drawScore();
+					drawExplosions();
 					DrawText("GAME OVER", SC_W/2 - 98, SC_H/2 - 100, 32, (Color){127, 127, 127, 255});
 					break;
 			};
