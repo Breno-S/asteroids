@@ -3,7 +3,6 @@
 
 # include "raylib.h"
 
-# define EXPLOSION_MAX 20
 # define EXPLOSION_DEBRIS 10
 
 typedef struct	s_Debris

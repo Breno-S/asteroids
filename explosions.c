@@ -2,6 +2,8 @@
 #include "raylib.h"
 #include "raymath.h"
 
+#define EXPLOSION_MAX 20
+
 t_Explosion		explosion[EXPLOSION_MAX]; 
 extern float	frameTime;
 
