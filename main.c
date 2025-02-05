@@ -2,6 +2,7 @@
 #include "raymath.h"
 #include "explosions.h"
 #include <stdio.h>
+#include <limits.h>
 
 /*********************************** MACROS ***********************************/
 
@@ -21,12 +22,9 @@ enum e_GameScreen { TITLE, GAME, END };
 
 typedef struct	s_GameState
 {
-	unsigned long		score;
-	double				deathTime;
-	double				saucerDeathTime;
-	double				cleanTime;
-	double				hyperspaceTime;
+	unsigned int		score;
 	double				levelStartTime;
+	double				cleanTime;
 	unsigned short		numLives;
 	unsigned short		oneUpMeter;
 	unsigned short		rockCount;
@@ -67,6 +65,9 @@ typedef struct	s_PlayerShip
 	Vector2		CoM;
 	Vector2		pos;
 	Vector2		vel;
+	double		spawnTime;
+	double		deathTime;
+	double		hyperspaceTime;
 	float		angle;
 	float		accel;
 	float		maxSpeed;
@@ -77,38 +78,47 @@ typedef struct	s_PlayerShip
 typedef struct	s_Saucer
 {
 	t_Bullet	bullets[2];
-	Texture		texture;
+	Texture		textureBg;
+	Texture		textureSm;
 	t_Circle	hitBox;
 	Vector2		pos;
 	Vector2		vel;
 	double		spawnTime;
+	double		deathTime;
+	double		requestTime;
 	double		shootTime;
+	double		mourningTimer;
 	float		speed;
 	float		inaccuracy;
 	enum e_Size	size;
+	bool		shouldRespawn;
 	bool		isLive;
 }	t_Saucer;
 
 /***************************** GLOBAL VARIABLES *******************************/
 
+Font			font;
+Font			fontBold;
 Texture			rockTextures[12];
 t_GameState		gameState = {
 	.numLives = 3,
 	.currentScreen = TITLE,
-	.rocksToSpawn = 4,
+	.rocksToSpawn = 4
 };
 t_PlayerShip	player = {
 	.currSprite = {0, 0, 21, 10},
 	.hitBox = {{SC_W / 2, SC_H / 2}, 5},
 	.CoM = {10, 5},
 	.pos = {SC_W / 2, SC_H / 2},
-	.maxSpeed = 250,
-	.accel = 150,
+	.maxSpeed = 300,
+	.accel = 200,
 };
-t_Saucer	saucer = {
+t_Saucer		saucer = {
 	.speed = 70,
-	.inaccuracy = 20 * DEG2RAD
+	.inaccuracy = 10 * DEG2RAD,
+	.mourningTimer = 10,
 };
+double			time;
 float			frameTime;
 t_Bullet		bulletPool[BULLET_MAX];
 t_Rock			rockPool[ROCK_MAX];
@@ -148,7 +158,7 @@ void	playerShoot()
 	for (int i = 0; i < BULLET_MAX; i++)
 		if (bulletPool[i].isLive == false)
 			isFull = false;
-	if (!isFull)
+	if (!isFull && !player.inHyperspace)
 	{
 		bulletPool[bulletIdx].pos = (Vector2){
 			.x = player.pos.x + 8 * cosf(player.angle * DEG2RAD),
@@ -195,7 +205,7 @@ void	saucerShoot()
 		saucer.bullets[bulletIdx].ttl = 1;
 		saucer.bullets[bulletIdx].isLive = true;
 		bulletIdx = !bulletIdx;
-		saucer.shootTime = GetTime();
+		saucer.shootTime = time;
 	}
 	if (GetRandomValue(0, 1))
 		saucer.inaccuracy *= -1;
@@ -203,13 +213,13 @@ void	saucerShoot()
 
 void	enterHyperspace()
 {
-	gameState.hyperspaceTime = GetTime();
+	player.hyperspaceTime = time;
 	player.inHyperspace = true;
 }
 
 void	exitHyperspace()
 {
-	if (GetTime() - gameState.hyperspaceTime > 1.5)
+	if (time - player.hyperspaceTime > 1.5)
 	{
 		player.vel.x = 0;
 		player.vel.y = 0;
@@ -232,8 +242,7 @@ void	playerDie()
 		player.hitBox.center.x = SC_W / 2;
 		player.hitBox.center.y = SC_H / 2;
 		gameState.numLives--;
-		gameState.deathTime = GetTime();
-		gameState.saucerDeathTime = GetTime();
+		player.deathTime = time;
 }
 
 void	saucerDie()
@@ -241,8 +250,11 @@ void	saucerDie()
 	explodeAt(saucer.hitBox.center);
 	saucer.isLive = false;
 	if (saucer.size == SMALL && saucer.inaccuracy > 0)
-		saucer.inaccuracy -= 1 * DEG2RAD;
-	gameState.saucerDeathTime = GetTime();
+		saucer.inaccuracy -= 0.5 * DEG2RAD;
+	saucer.deathTime = time;
+	saucer.shouldRespawn = false;
+	if (saucer.mourningTimer > 0)
+		saucer.mourningTimer -= 1;
 }
 
 void	playerRespawn()
@@ -260,12 +272,17 @@ void	playerRespawn()
 			}
 		}
 	}
-	if (GetTime() - gameState.deathTime > 3)
+	if (time - player.deathTime > 3)
 	{
-		saucer.bullets[0].isLive = false;
-		saucer.bullets[1].isLive = false;
-		saucer.isLive = false;
+		if (saucer.isLive)
+		{
+			saucer.bullets[0].isLive = false;
+			saucer.bullets[1].isLive = false;
+			saucer.isLive = false;
+			saucer.deathTime = time;
+		}
 		player.isLive = true;
+		player.spawnTime = time;
 	}
 }
 
@@ -299,14 +316,14 @@ void	updatePlayer()
 
 void	updateSaucer()
 {
-	short angles[3] = {-35, 0, 35};
-	static struct {unsigned n: 2;} idx = {};
+	static short 					angles[3] = {-35, 0, 35};
+	static struct {unsigned n: 2;}	idx = {};
 
 	if (saucer.isLive)
 	{
 		saucer.pos = Vector2Add(saucer.pos, Vector2Scale(saucer.vel, frameTime));
 		saucer.hitBox.center = Vector2Add(saucer.hitBox.center, Vector2Scale(saucer.vel, frameTime));
-		if (GetTime() - saucer.spawnTime > 2)
+		if (time - saucer.spawnTime > 2)
 		{
 			if (saucer.vel.x > 0)
 			{
@@ -327,7 +344,7 @@ void	updateSaucer()
 					saucer.vel = Vector2Rotate((Vector2){saucer.speed, 0}, (angles[GetRandomValue(0, 1)] + 180) * DEG2RAD);
 			}
 			idx.n++;
-			saucer.spawnTime = GetTime();
+			saucer.spawnTime = time;
 		}
 		if (saucer.hitBox.center.y > SC_H)
 		{
@@ -342,9 +359,13 @@ void	updateSaucer()
 		if (saucer.pos.x > SC_W + 1 || saucer.pos.x < -25)
 		{
 			saucer.isLive = false;
-			gameState.saucerDeathTime = GetTime();
+			saucer.deathTime = time;
+			if (saucer.mourningTimer > 0)
+				saucer.mourningTimer -= 1;
+			if (saucer.size == SMALL)
+				saucer.inaccuracy -= 0.5;
 		}
-		if ((GetTime() - saucer.shootTime > 0.66 && GetTime() - saucer.spawnTime > 1)
+		if ((time - saucer.shootTime > 0.66 && time - saucer.spawnTime > 1)
 				&& saucer.hitBox.center.x < SC_W - saucer.hitBox.radius*2
 				&& saucer.hitBox.center.x > saucer.hitBox.radius*2
 				&& player.isLive)
@@ -415,22 +436,24 @@ void	updateBullets()
 
 void	loadAllTextures()
 {
-	rockTextures[0] = LoadTexture("resources/Rock1-bg.png");
-	rockTextures[1] = LoadTexture("resources/Rock2-bg.png");
-	rockTextures[2] = LoadTexture("resources/Rock3-bg.png");
-	rockTextures[3] = LoadTexture("resources/Rock4-bg.png");
+	rockTextures[0]  = LoadTexture("resources/textures/Rock1-bg.png");
+	rockTextures[1]  = LoadTexture("resources/textures/Rock2-bg.png");
+	rockTextures[2]  = LoadTexture("resources/textures/Rock3-bg.png");
+	rockTextures[3]  = LoadTexture("resources/textures/Rock4-bg.png");
 
-	rockTextures[4] = LoadTexture("resources/Rock1-md.png");
-	rockTextures[5] = LoadTexture("resources/Rock2-md.png");
-	rockTextures[6] = LoadTexture("resources/Rock3-md.png");
-	rockTextures[7] = LoadTexture("resources/Rock4-md.png");
+	rockTextures[4]  = LoadTexture("resources/textures/Rock1-md.png");
+	rockTextures[5]  = LoadTexture("resources/textures/Rock2-md.png");
+	rockTextures[6]  = LoadTexture("resources/textures/Rock3-md.png");
+	rockTextures[7]  = LoadTexture("resources/textures/Rock4-md.png");
 
-	rockTextures[8] = LoadTexture("resources/Rock1-sm.png");
-	rockTextures[9] = LoadTexture("resources/Rock2-sm.png");
-	rockTextures[10] = LoadTexture("resources/Rock3-sm.png");
-	rockTextures[11] = LoadTexture("resources/Rock4-sm.png");
+	rockTextures[8]  = LoadTexture("resources/textures/Rock1-sm.png");
+	rockTextures[9]  = LoadTexture("resources/textures/Rock2-sm.png");
+	rockTextures[10] = LoadTexture("resources/textures/Rock3-sm.png");
+	rockTextures[11] = LoadTexture("resources/textures/Rock4-sm.png");
 
-	player.texture = LoadTexture("resources/Ship.png");
+	player.texture   = LoadTexture("resources/textures/Ship.png");
+	saucer.textureBg = LoadTexture("resources/textures/Saucer-bg.png");
+	saucer.textureSm = LoadTexture("resources/textures/Saucer-sm.png");
 }
 
 void	drawPlayer()
@@ -445,7 +468,7 @@ void	drawPlayer()
 			player.angle,
 			WHITE
 		);
-		DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
+		//DrawCircleLinesV(player.hitBox.center, player.hitBox.radius, RED);
 	}
 }
 
@@ -453,30 +476,41 @@ void	drawSaucer()
 {
 	if (saucer.isLive)
 	{
-		DrawTexture(
-			saucer.texture,
-			saucer.pos.x,
-			saucer.pos.y,
-			WHITE
-		);
-		DrawCircleLinesV(saucer.hitBox.center, saucer.hitBox.radius, RED);
+		if (saucer.size == BIG)
+			DrawTexture(
+				saucer.textureBg,
+				saucer.pos.x,
+				saucer.pos.y,
+				WHITE
+			);
+		else 
+			DrawTexture(
+				saucer.textureSm,
+				saucer.pos.x,
+				saucer.pos.y,
+				WHITE
+			);
+		//DrawCircleLinesV(saucer.hitBox.center, saucer.hitBox.radius, RED);
 	}
+}
+
+void	drawProjectile(Vector2 position)
+{
+			DrawPixel(position.x,   position.y,   WHITE);
+			DrawPixel(position.x+1, position.y,   WHITE);
+			DrawPixel(position.x+1, position.y+1, WHITE);
+			DrawPixel(position.x,   position.y+1, WHITE);
 }
 
 void	drawBullets()
 {
 	for (int i = 0; i < BULLET_MAX; i++)
 		if (bulletPool[i].isLive)
-		{
-			DrawPixel(bulletPool[i].pos.x, bulletPool[i].pos.y, WHITE);
-			DrawPixel(bulletPool[i].pos.x+1, bulletPool[i].pos.y, WHITE);
-			DrawPixel(bulletPool[i].pos.x+1, bulletPool[i].pos.y+1, WHITE);
-			DrawPixel(bulletPool[i].pos.x, bulletPool[i].pos.y+1, WHITE);
-		}
+			drawProjectile(bulletPool[i].pos);
 	if (saucer.bullets[0].isLive)
-		DrawPixel(saucer.bullets[0].pos.x, saucer.bullets[0].pos.y, WHITE);
+		drawProjectile(saucer.bullets[0].pos);
 	if (saucer.bullets[1].isLive)
-		DrawPixel(saucer.bullets[1].pos.x, saucer.bullets[1].pos.y, WHITE);
+		drawProjectile(saucer.bullets[1].pos);
 }
 
 void	drawRocks()
@@ -492,7 +526,7 @@ void	drawRocks()
 				WHITE
 			);
 			//char	stats[32] = { 0 };
-			DrawCircleLinesV(rockPool[i].hitBox.center, rockPool[i].hitBox.radius, RED);
+			//DrawCircleLinesV(rockPool[i].hitBox.center, rockPool[i].hitBox.radius, RED);
 			//sprintf(stats, "%.2f", Vector2Length(rockPool[i].vel)); 
 			//DrawText(stats, rockPool[i].pos.x, rockPool[i].pos.y + 30, 10, YELLOW);
 		}
@@ -503,8 +537,8 @@ void	drawScore()
 {
 	static char	scoreStr[15];
 
-	sprintf(scoreStr, "%12.2ld", gameState.score);
-	DrawText(scoreStr, 0, 4, 26, (Color){255, 255, 255, 127});
+	sprintf(scoreStr, "%8.2u", gameState.score);
+	DrawTextEx(fontBold, scoreStr, (Vector2){2, 0}, 32, 0, (Color){255, 255, 255, 127});
 }
 
 void	drawLives()
@@ -514,12 +548,12 @@ void	drawLives()
 		DrawTexturePro(
 			player.texture,
 			(Rectangle){0, 0, 21, 10},
-			(Rectangle){90 + 10 * i, 42, player.currSprite.width, player.currSprite.height},
+			(Rectangle){86 + 10 * i, 42, player.currSprite.width, player.currSprite.height},
 			player.CoM,
 			-90,
 			(Color){255, 255, 255, 127}
 		);
-	}
+	};
 }
 	
 void	drawTitleScreen()
@@ -585,7 +619,7 @@ void	decayRock(unsigned short rockIdx, bool	shouldScore)
 				scoreAdd(100);
 			gameState.rockCount--;
 			if (gameState.rockCount == 0)
-				gameState.cleanTime = GetTime();
+				gameState.cleanTime = time;
 			break;
 	}
 }
@@ -648,13 +682,19 @@ void	handlePlayerCollisions()
 				scoreAdd(1000);
 		}
 	if (saucer.bullets[0].isLive)
-		if (CheckCollisionPointCircle(saucer.bullets[0].pos, player.hitBox.center, player.hitBox.radius))
+		if (CheckCollisionPointCircle(saucer.bullets[0].pos, player.hitBox.center, player.hitBox.radius)
+			|| CheckCollisionPointCircle((Vector2){saucer.bullets[0].pos.x+1, saucer.bullets[0].pos.y  }, player.hitBox.center, player.hitBox.radius)
+			|| CheckCollisionPointCircle((Vector2){saucer.bullets[0].pos.x+1, saucer.bullets[0].pos.y+1}, player.hitBox.center, player.hitBox.radius)
+			|| CheckCollisionPointCircle((Vector2){saucer.bullets[0].pos.x,   saucer.bullets[0].pos.y+1}, player.hitBox.center, player.hitBox.radius))
 		{
 			playerDie();
 			saucer.bullets[0].isLive = false;
 		}
 	if (saucer.bullets[1].isLive)
-		if (CheckCollisionPointCircle(saucer.bullets[1].pos, player.hitBox.center, player.hitBox.radius))
+		if (CheckCollisionPointCircle(saucer.bullets[1].pos, player.hitBox.center, player.hitBox.radius)
+			|| CheckCollisionPointCircle((Vector2){saucer.bullets[1].pos.x+1, saucer.bullets[1].pos.y  }, player.hitBox.center, player.hitBox.radius)
+			|| CheckCollisionPointCircle((Vector2){saucer.bullets[1].pos.x+1, saucer.bullets[1].pos.y+1}, player.hitBox.center, player.hitBox.radius)
+			|| CheckCollisionPointCircle((Vector2){saucer.bullets[1].pos.x,   saucer.bullets[1].pos.y+1}, player.hitBox.center, player.hitBox.radius))
 		{
 			playerDie();
 			saucer.bullets[1].isLive = false;
@@ -669,7 +709,10 @@ void	handleSaucerBulletCollisions()
 		{
 			if (rockPool[i].isLive)
 			{
-				if (CheckCollisionPointCircle(saucer.bullets[0].pos, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
+				if (CheckCollisionPointCircle(saucer.bullets[0].pos, rockPool[i].hitBox.center, rockPool[i].hitBox.radius)
+					|| CheckCollisionPointCircle((Vector2){saucer.bullets[0].pos.x+1, saucer.bullets[0].pos.y  }, rockPool[i].hitBox.center, rockPool[i].hitBox.radius)
+					|| CheckCollisionPointCircle((Vector2){saucer.bullets[0].pos.x+1, saucer.bullets[0].pos.y+1}, rockPool[i].hitBox.center, rockPool[i].hitBox.radius)
+					|| CheckCollisionPointCircle((Vector2){saucer.bullets[0].pos.x,   saucer.bullets[0].pos.y+1}, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
 				{
 					saucer.bullets[0].isLive = false;
 					decayRock(i, false);
@@ -683,7 +726,10 @@ void	handleSaucerBulletCollisions()
 		{
 			if (rockPool[i].isLive)
 			{
-				if (CheckCollisionPointCircle(saucer.bullets[1].pos, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
+				if (CheckCollisionPointCircle(saucer.bullets[1].pos, rockPool[i].hitBox.center, rockPool[i].hitBox.radius)
+					 || CheckCollisionPointCircle((Vector2){saucer.bullets[1].pos.x+1, saucer.bullets[1].pos.y  }, rockPool[i].hitBox.center, rockPool[i].hitBox.radius)
+					 || CheckCollisionPointCircle((Vector2){saucer.bullets[1].pos.x+1, saucer.bullets[1].pos.y+1}, rockPool[i].hitBox.center, rockPool[i].hitBox.radius)
+					 || CheckCollisionPointCircle((Vector2){saucer.bullets[1].pos.x,   saucer.bullets[1].pos.y+1}, rockPool[i].hitBox.center, rockPool[i].hitBox.radius))
 				{
 					saucer.bullets[1].isLive = false;
 					decayRock(i, false);
@@ -711,15 +757,19 @@ void	handleSaucerCollisions()
 
 void	spawnRocks()
 {
-	static const Rectangle	spawnAreas[4] = {
+	static struct {unsigned n: 2;}	idx = {};
+	static const Rectangle			spawnAreas[4] = {
 		{0, -10, SC_W, 10},
 		{SC_W - 10, 0, SC_W + 10, SC_H},
 		{0, SC_H - 10, SC_W, SC_H + 10},
 		{-10, 0, 10, SC_H}
 	};
-	static struct {unsigned n: 2;} idx = {};
 
-	if (GetTime() - gameState.cleanTime > 4 && !saucer.isLive)
+	time = time;
+	if ((time - gameState.cleanTime > 3)
+			&& (!saucer.isLive)
+			&& (time - saucer.deathTime > 2)
+			&& (time - player.deathTime > 1))
 	{
 		for (int i = 0; i < gameState.rocksToSpawn * 4; i += 4)
 		{
@@ -742,13 +792,12 @@ void	spawnRocks()
 			gameState.rocksToSpawn += 2;
 		else
 			gameState.rocksToSpawn = ROCK_SPAWN_MAX;
+		gameState.levelStartTime = time;
 	}
-	gameState.levelStartTime = GetTime();
 }
 
 void	spawnBgSaucer()
 {
-	saucer.texture = LoadTexture("resources/Saucer-bg.png");
 	saucer.size = BIG;
 	saucer.hitBox.radius = 10;
 	if (GetRandomValue(0, 1))
@@ -765,13 +814,12 @@ void	spawnBgSaucer()
 	saucer.vel.y = 0;
 	saucer.hitBox.center.x = saucer.pos.x + 12.5;
 	saucer.hitBox.center.y = saucer.pos.y + 8;
-	saucer.spawnTime = GetTime();
+	saucer.spawnTime = time;
 	saucer.isLive = true;
 }
 
 void	spawnSmSaucer()
 {
-	saucer.texture = LoadTexture("resources/Saucer-sm.png");
 	saucer.size = SMALL;
 	saucer.hitBox.radius = 5;
 	if (GetRandomValue(0, 1))
@@ -788,32 +836,55 @@ void	spawnSmSaucer()
 	saucer.vel.y = 0;
 	saucer.hitBox.center.x = saucer.pos.x + 6.5;
 	saucer.hitBox.center.y = saucer.pos.y + 4.5;
-	saucer.spawnTime = GetTime();
+	saucer.spawnTime = time;
 	saucer.isLive = true;
 }
 
-void	spawnSaucer()
+void	requestSaucer()
 {
-	double	time = GetTime();
+	bool	isValid;
 
 	if ((time - gameState.levelStartTime > 20)
-			&& (time - gameState.saucerDeathTime > 10)
+			&& (time - saucer.deathTime > saucer.mourningTimer)
 			&& (gameState.rockCount <= 8 && gameState.rockCount > 0))
+	{
+		isValid = true;
+	}
+	else
+		isValid = false;
+	if (isValid && !saucer.shouldRespawn)
+	{
+		saucer.shouldRespawn= true;
+		saucer.requestTime = time;
+	}
+	if (!isValid)
+		saucer.shouldRespawn = false;
+	if (saucer.shouldRespawn && (time - saucer.requestTime > 4))
 	{
 		if (gameState.score > 40000)
 			spawnSmSaucer();
 		else
 		{
 			if (gameState.score < 10000)
+				if (time - gameState.levelStartTime > 60)
+					spawnSmSaucer();
+				else
 				spawnBgSaucer();
 			else
 			{
-				if (GetRandomValue(0, 4))
-					spawnBgSaucer();
-				else
+				if (time - gameState.levelStartTime > 60)
 					spawnSmSaucer();
+				else
+				{
+					if (GetRandomValue(0, 4))
+						spawnBgSaucer();
+					else
+						spawnSmSaucer();
+				}
 			}
 		}
+		saucer.spawnTime = time;
+		saucer.shouldRespawn = false;
 	}
 }
 
@@ -828,33 +899,53 @@ void	initSession()
 	gameState.score = 0;
 	gameState.oneUpMeter = 0;
 	player.angle = 0;
-	gameState.deathTime = GetTime() - 2;
-	gameState.cleanTime = GetTime() - 2;
-	gameState.levelStartTime = GetTime();
+	player.deathTime = time - 2;
+	gameState.cleanTime = time - 2;
 	gameState.currentScreen = GAME;
+	saucer.mourningTimer = 11;
+	saucer.shouldRespawn = false;
+	saucer.requestTime = 0;
 }
 
 void	playerHandleInputs()
 {
 	if (!gameState.isPaused)
 	{
-		if (IsKeyDown(KEY_D))
-			player.angle += 220 * frameTime;
-		if (IsKeyDown(KEY_A))
-			player.angle -= 220 * frameTime;
-		if (IsKeyDown(KEY_W))
-			accelerate();
-		else
-			decelerate();
-		if (IsKeyPressed(KEY_J))
-			playerShoot();
-		if (IsKeyPressed(KEY_K))
-			enterHyperspace();
+		if (player.isLive && !player.inHyperspace)
+		{
+			if (IsKeyDown(KEY_D))
+				player.angle += 240 * frameTime;
+			if (IsKeyDown(KEY_A))
+				player.angle -= 240 * frameTime;
+			if (IsKeyDown(KEY_W))
+				accelerate();
+			else
+				decelerate();
+			if (IsKeyPressed(KEY_J))
+				playerShoot();
+			if (IsKeyPressed(KEY_K))
+				enterHyperspace();
+		}
 	}
 	if (IsKeyPressed(KEY_SPACE))
 		gameState.isPaused = !gameState.isPaused;
 }
 
+void	logTimes()
+{
+	if (time - (int)time < 0.1)
+	{
+		printf("Time: %f\n", time);
+		//printf("Level start: %f\n", gameState.levelStartTime);
+		//printf("Clean: %f\n", gameState.cleanTime);
+		//printf("Player spawn: %f\n", player.spawnTime);
+		//printf("Player death: %f\n", player.deathTime);
+		printf("Saucer Request: %f\n", saucer.requestTime);
+		printf("Mourning Timer: %f\n", saucer.mourningTimer);
+		printf("Saucer death: %f\n", saucer.deathTime);
+		printf("Saucer death: %f\n", saucer.deathTime);
+	}
+}
 /************************************ MAIN ************************************/
 
 int	main(void)
@@ -862,10 +953,14 @@ int	main(void)
 	InitWindow(SC_W, SC_H, "Asteroids");
 	SetTargetFPS(60);
 	loadAllTextures();
+	font = LoadFont("resources/font/font-hyperspace/Hyperspace.otf");
+	fontBold = LoadFont("resources/font/font-hyperspace/Hyperspace Bold.otf");
 
 	while (!WindowShouldClose())
 	{
 		frameTime = GetFrameTime();
+		if (!gameState.isPaused)
+			time += frameTime;
 		switch (gameState.currentScreen)
 		{
 			case TITLE:
@@ -873,48 +968,48 @@ int	main(void)
 					initSession();
 				break;
 			case GAME:
-				if (player.isLive)
-				{
-					if (player.inHyperspace)
-						exitHyperspace();
-					else
-					{
-						playerHandleInputs();
-						handlePlayerCollisions();
-					}
-				}
-				else
-				{
-					if (gameState.numLives > 0)
-						playerRespawn();
-					else
-						gameState.currentScreen = END;
-				}
-				if (saucer.isLive)
-					handleSaucerCollisions();
-				else
-					spawnSaucer();
-				handlePlayerBulletCollisions();
-				handleSaucerBulletCollisions();
-				if (gameState.oneUpMeter > 10000)
-				{
-					gameState.numLives++;
-					gameState.oneUpMeter -= 10000;
-				}
-				if (gameState.rockCount == 0)
-					spawnRocks();
+				playerHandleInputs();
 				if (!gameState.isPaused)
 				{
+					if (player.isLive)
+					{
+						if (player.inHyperspace)
+							exitHyperspace();
+						else
+							handlePlayerCollisions();
+					}
+					else
+					{
+						if (gameState.numLives > 0)
+							playerRespawn();
+						else
+							gameState.currentScreen = END;
+					}
+					if (saucer.isLive)
+						handleSaucerCollisions();
+					else
+						requestSaucer();
+					handlePlayerBulletCollisions();
+					handleSaucerBulletCollisions();
+					if (gameState.oneUpMeter > 10000)
+					{
+						gameState.numLives++;
+						gameState.oneUpMeter -= 10000;
+					}
+					if (gameState.rockCount == 0)
+						spawnRocks();
 					updatePlayer();
 					updateSaucer();
 					updateBullets();
 					updateRocks();
 					updateExplosions();
 				}
+
+				//logTimes();
 				break;
 			case END:
 			{
-				if (GetTime() - gameState.deathTime > 5)
+				if (time - player.deathTime > 5)
 					gameState.currentScreen = TITLE;
 				handlePlayerBulletCollisions();
 				if (gameState.rockCount == 0)
@@ -951,7 +1046,7 @@ int	main(void)
 					drawSaucer();
 					drawScore();
 					drawExplosions();
-					DrawText("GAME OVER", SC_W/2 - 98, SC_H/2 - 100, 32, (Color){127, 127, 127, 255});
+					DrawTextEx(fontBold, "GAME OVER", (Vector2){SC_W/2 - 74, SC_H/2 - 100}, 32, 1, (Color){127, 127, 127, 255});
 					break;
 			};
 		EndDrawing();
