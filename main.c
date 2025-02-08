@@ -98,6 +98,20 @@ typedef struct	s_Saucer
 
 /***************************** GLOBAL VARIABLES *******************************/
 
+struct
+{
+	Sound	bangBgSFX;
+	Sound	bangMdSFX;
+	Sound	bangSmSFX;
+	Sound	beat1;
+	Sound	beat2;
+	Sound	extraShipSFX;
+	Sound	fireSFX;
+	Sound	saucerFireSFX;
+	Sound	saucerBg;
+	Sound	saucerSm;
+	Sound	thrust;
+}				sounds;
 Font			font;
 Font			fontBold;
 Texture			rockTextures[12];
@@ -155,6 +169,7 @@ void	scoreAdd(unsigned short points)
 	{
 		gameState.numLives++;
 		gameState.oneUpMeter -= 10000;
+		PlaySound(sounds.extraShipSFX);
 	}
 }
 
@@ -165,6 +180,7 @@ void	decelerate()
 	if (Vector2Length(player.vel) > 0)
 		player.vel = Vector2Subtract(player.vel, Vector2Scale(player.vel, 0.25 * frameTime));
 	player.currSprite.x = 0;
+	StopSound(sounds.thrust);
 }
 
 void	accelerate()
@@ -182,6 +198,8 @@ void	accelerate()
 		player.vel.y *= scale;
 	}
 	player.currSprite.x = 21;
+	if (!IsSoundPlaying(sounds.thrust))
+		PlaySound(sounds.thrust);
 }
 
 void	playerShoot()
@@ -208,6 +226,7 @@ void	playerShoot()
 		bulletIdx++;
 		if (bulletIdx == BULLET_MAX)
 			bulletIdx = 0;
+		PlaySound(sounds.fireSFX);
 	}
 }
 
@@ -223,6 +242,8 @@ void	playerDie()
 		player.hitBox.center.y = SC_H / 2;
 		gameState.numLives--;
 		player.deathTime = time;
+		PlaySound(sounds.bangMdSFX);
+		StopSound(sounds.thrust);
 }
 
 void	playerRespawn()
@@ -343,6 +364,7 @@ void	saucerShoot()
 		saucer.bullets[bulletIdx].isLive = true;
 		bulletIdx = !bulletIdx;
 		saucer.shootTime = time;
+		PlaySound(sounds.saucerFireSFX);
 	}
 	if (GetRandomValue(0, 1))
 		saucer.inaccuracy *= -1;
@@ -358,6 +380,17 @@ void	saucerDie()
 	saucer.shouldRespawn = false;
 	if (saucer.mourningTimer > 0)
 		saucer.mourningTimer -= 1;
+	switch (saucer.size)
+	{
+		case BIG:
+			PlaySound(sounds.bangBgSFX);
+			break;
+		case SMALL:
+			PlaySound(sounds.bangMdSFX);
+			break;
+		default:
+			break;
+	}
 }
 
 void	spawnBgSaucer()
@@ -519,6 +552,7 @@ void	decayRock(unsigned short rockIdx, bool	shouldScore)
 			if (shouldScore)
 				scoreAdd(20);
 			gameState.rockCount++;
+			PlaySound(sounds.bangBgSFX);
 			break;
 		case MEDIUM:
 			rockPool[rockIdx].size = SMALL;
@@ -535,6 +569,7 @@ void	decayRock(unsigned short rockIdx, bool	shouldScore)
 			if (shouldScore)
 				scoreAdd(50);
 			gameState.rockCount++;
+			PlaySound(sounds.bangMdSFX);
 			break;
 		case SMALL:
 			rockPool[rockIdx].isLive = false;
@@ -543,6 +578,7 @@ void	decayRock(unsigned short rockIdx, bool	shouldScore)
 			gameState.rockCount--;
 			if (gameState.rockCount == 0)
 				gameState.cleanTime = time;
+			PlaySound(sounds.bangSmSFX);
 			break;
 	}
 }
@@ -621,6 +657,19 @@ void	updateSaucer()
 				&& (saucer.hitBox.center.x > saucer.hitBox.radius * 2)
 				&& (player.isLive))
 			saucerShoot();
+		switch (saucer.size)
+		{
+			case BIG:
+				if (!IsSoundPlaying(sounds.saucerBg))
+					PlaySound(sounds.saucerBg);
+				break;
+			case SMALL:
+				if (!IsSoundPlaying(sounds.saucerSm))
+					PlaySound(sounds.saucerSm);
+				break;
+			default:
+				break;
+		}
 	}
 }
 
@@ -942,6 +991,21 @@ void	loadAllTextures()
 	saucer.textureSm = LoadTexture("resources/textures/Saucer-sm.png");
 }
 
+void	loadAllSounds()
+{
+	sounds.bangBgSFX     = LoadSound("resources/sounds/bangLarge.wav");
+	sounds.bangMdSFX     = LoadSound("resources/sounds/bangMedium.wav");
+	sounds.bangSmSFX     = LoadSound("resources/sounds/bangSmall.wav");
+	sounds.beat1         = LoadSound("resources/sounds/beat1.wav");
+	sounds.beat2         = LoadSound("resources/sounds/beat2.wav");
+	sounds.extraShipSFX  = LoadSound("resources/sounds/extraShip.wav");
+	sounds.fireSFX       = LoadSound("resources/sounds/fire.wav");
+	sounds.saucerFireSFX = LoadSound("resources/sounds/saucerFire.wav");
+	sounds.saucerBg      = LoadSound("resources/sounds/saucerBig.wav");
+	sounds.saucerSm      = LoadSound("resources/sounds/saucerSmall.wav");
+	sounds.thrust        = LoadSound("resources/sounds/thrust.wav");
+}
+
 /************************************ MAIN ************************************/
 
 int	main(void)
@@ -951,6 +1015,8 @@ int	main(void)
 	loadAllTextures();
 	font = LoadFont("resources/font/font-hyperspace/Hyperspace.otf");
 	fontBold = LoadFont("resources/font/font-hyperspace/Hyperspace Bold.otf");
+	InitAudioDevice();
+	loadAllSounds();
 
 	while (!WindowShouldClose())
 	{
