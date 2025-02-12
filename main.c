@@ -3,7 +3,6 @@
 #include "explosions.h"
 #include <stdio.h>
 #include <math.h>
-#include <limits.h>
 
 /*********************************** MACROS ***********************************/
 
@@ -111,6 +110,7 @@ struct
 	Sound	saucerBg;
 	Sound	saucerSm;
 	Sound	thrust;
+	float	thrustVolume;
 }				sounds;
 Font			font;
 Font			fontBold;
@@ -180,7 +180,10 @@ void	decelerate()
 	if (Vector2Length(player.vel) > 0)
 		player.vel = Vector2Subtract(player.vel, Vector2Scale(player.vel, 0.25 * frameTime));
 	player.currSprite.x = 0;
-	StopSound(sounds.thrust);
+	sounds.thrustVolume -= 0.1F;
+	if (sounds.thrustVolume < 0.0F)
+		sounds.thrustVolume = 0.0F;
+	SetSoundVolume(sounds.thrust, sounds.thrustVolume);
 }
 
 void	accelerate()
@@ -198,6 +201,11 @@ void	accelerate()
 		player.vel.y *= scale;
 	}
 	player.currSprite.x = 21;
+	
+	sounds.thrustVolume += 0.1F;
+	if (sounds.thrustVolume > 1.0F)
+		sounds.thrustVolume = 1.0F;
+	SetSoundVolume(sounds.thrust, sounds.thrustVolume);
 	if (!IsSoundPlaying(sounds.thrust))
 		PlaySound(sounds.thrust);
 }
@@ -277,6 +285,7 @@ void	playerRespawn()
 
 void	enterHyperspace()
 {
+	StopSound(sounds.thrust);
 	player.hyperspaceTime = time;
 	player.inHyperspace = true;
 }
@@ -1112,6 +1121,7 @@ int	main(void)
 		EndDrawing();
 	}
 
+	CloseAudioDevice();
 	CloseWindow();
 	return (0);
 }
