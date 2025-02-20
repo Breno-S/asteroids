@@ -1,0 +1,84 @@
+#include "raylib.h"
+#include "gameObjects.h"
+#include "resources.h"
+
+extern t_GameState	gameState;
+extern t_PlayerShip	player;
+extern t_Saucer		saucer;
+extern double		time;
+
+t_Sounds	sounds;
+t_Music		music = {.rest = 1.5};
+Font		font64;
+Font		fontBold32;
+Font		fontBold24;
+Texture		rockTextures[12];
+
+void	loadAllTextures()
+{
+	rockTextures[0]  = LoadTexture("resources/textures/Rock1-bg.png");
+	rockTextures[1]  = LoadTexture("resources/textures/Rock2-bg.png");
+	rockTextures[2]  = LoadTexture("resources/textures/Rock3-bg.png");
+	rockTextures[3]  = LoadTexture("resources/textures/Rock4-bg.png");
+
+	rockTextures[4]  = LoadTexture("resources/textures/Rock1-md.png");
+	rockTextures[5]  = LoadTexture("resources/textures/Rock2-md.png");
+	rockTextures[6]  = LoadTexture("resources/textures/Rock3-md.png");
+	rockTextures[7]  = LoadTexture("resources/textures/Rock4-md.png");
+
+	rockTextures[8]  = LoadTexture("resources/textures/Rock1-sm.png");
+	rockTextures[9]  = LoadTexture("resources/textures/Rock2-sm.png");
+	rockTextures[10] = LoadTexture("resources/textures/Rock3-sm.png");
+	rockTextures[11] = LoadTexture("resources/textures/Rock4-sm.png");
+
+	player.texture   = LoadTexture("resources/textures/Ship.png");
+	saucer.textureBg = LoadTexture("resources/textures/Saucer-bg.png");
+	saucer.textureSm = LoadTexture("resources/textures/Saucer-sm.png");
+}
+
+void	loadAllFonts()
+{
+	font64     = LoadFontEx("resources/font/font-hyperspace/Hyperspace.otf", 64, (void *)0, 0);
+	fontBold32 = LoadFont("resources/font/font-hyperspace/Hyperspace Bold.otf");
+	fontBold24 = LoadFontEx("resources/font/font-hyperspace/Hyperspace Bold.otf", 24, (void *)0, 0);
+}
+
+void	loadAllSounds()
+{
+	sounds.bangBgSFX     = LoadSound("resources/sounds/bangLarge.wav");
+	sounds.bangMdSFX     = LoadSound("resources/sounds/bangMedium.wav");
+	sounds.bangSmSFX     = LoadSound("resources/sounds/bangSmall.wav");
+	sounds.extraShipSFX  = LoadSound("resources/sounds/extraShip.wav");
+	sounds.fireSFX       = LoadSound("resources/sounds/fire.wav");
+	sounds.saucerFireSFX = LoadSound("resources/sounds/saucerFire.wav");
+	sounds.saucerBg      = LoadSound("resources/sounds/saucerBig.wav");
+	sounds.saucerSm      = LoadSound("resources/sounds/saucerSmall.wav");
+	sounds.thrust        = LoadSound("resources/sounds/thrust.wav");
+	music.beat1         = LoadSound("resources/sounds/beat1.wav");
+	music.beat2         = LoadSound("resources/sounds/beat2.wav");
+}
+
+void	playGameMusic()
+{
+	static bool		isDownBeat = true;
+	static double	lastNoteTime = 0;
+	Sound			note;
+
+	if (isDownBeat)
+		note = music.beat1;
+	else
+		note = music.beat2;
+	if (time - lastNoteTime > music.rest
+			&& gameState.rockCount > 0)
+	{
+		PlaySound(note);
+		isDownBeat = !isDownBeat;
+		lastNoteTime = time;
+		if (isDownBeat)
+		{
+			music.rest -= 0.1;
+			if (music.rest < 0.3)
+				music.rest = 0.3;
+		}
+	}
+}

@@ -1,9 +1,9 @@
-NAME	= game
-SRC		= main.c explosions.c
+NAME	=game
+SRC		=main.c resources.c explosions.c gameObjects.c title.c game.c highScore.c postGame.c
 
-CC		= cc
-CFLAGS	= -Wall -Wextra #-Werror
-LDFLAGS	= -lraylib -lm
+CC		=cc
+CFLAGS	=-Wall -Wextra -Werror
+LDFLAGS	=-lraylib -lm
 
 all: $(NAME)
 
