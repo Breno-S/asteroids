@@ -87,6 +87,7 @@ void	initSession()
 	saucer.shouldRespawn = false;
 	saucer.requestTime = 0;
 	saucer.inaccuracy = 10.0F;
+	music.rest = 1.0;
 }
 
 void	endSession()
@@ -834,7 +835,7 @@ void	decayRock(unsigned short rockIdx, bool	shouldScore)
 			if (gameState.rockCount == 0)
 			{
 				gameState.cleanTime = time;
-				music.rest = 1.5;
+				music.rest = 1.0;
 			}
 			PlaySound(sounds.bangSmSFX);
 			break;

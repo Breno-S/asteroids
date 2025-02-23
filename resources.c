@@ -8,7 +8,7 @@ extern t_Saucer		saucer;
 extern double		time;
 
 t_Sounds	sounds;
-t_Music		music = {.rest = 1.5};
+t_Music		music = {.rest = 1.0};
 Font		font64;
 Font		fontBold32;
 Font		fontBold24;
@@ -54,14 +54,15 @@ void	loadAllSounds()
 	sounds.saucerBg      = LoadSound("resources/sounds/saucerBig.wav");
 	sounds.saucerSm      = LoadSound("resources/sounds/saucerSmall.wav");
 	sounds.thrust        = LoadSound("resources/sounds/thrust.wav");
-	music.beat1         = LoadSound("resources/sounds/beat1.wav");
-	music.beat2         = LoadSound("resources/sounds/beat2.wav");
+	music.beat1          = LoadSound("resources/sounds/beat1.wav");
+	music.beat2          = LoadSound("resources/sounds/beat2.wav");
 }
 
 void	playGameMusic()
 {
 	static bool		isDownBeat = true;
 	static double	lastNoteTime = 0;
+	static double	lastAccelerando = 0;
 	Sound			note;
 
 	if (isDownBeat)
@@ -74,11 +75,12 @@ void	playGameMusic()
 		PlaySound(note);
 		isDownBeat = !isDownBeat;
 		lastNoteTime = time;
-		if (isDownBeat)
+		if (time - lastAccelerando > 2)
 		{
-			music.rest -= 0.1;
-			if (music.rest < 0.3)
-				music.rest = 0.3;
+			lastAccelerando = time;
+			music.rest -= 0.05;
+			if (music.rest < 0.25)
+				music.rest = 0.25;
 		}
 	}
 }
