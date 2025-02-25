@@ -4,11 +4,6 @@
 #include "explosions.h"
 #include "game.h"
 
-extern t_Sounds		sounds;
-extern Font			fontBold32;
-extern t_GameState	gameState;
-extern t_PlayerShip	player;
-extern t_Saucer		saucer;
 extern double		time;
 extern float		frameTime;
 

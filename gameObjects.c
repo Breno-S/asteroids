@@ -6,11 +6,6 @@
 #include <stdio.h>
 #include "gameObjects.h"
 
-extern t_Sounds	sounds;
-extern t_Music	music;
-extern Font		fontBold32;
-extern Font		fontBold24;
-extern Texture	rockTextures[12];
 extern double	time;
 extern float	frameTime;
 
@@ -66,7 +61,7 @@ void	saveRecord(char *initials, unsigned int score)
 
 void	initSession()
 {
-	SetMasterVolume(1);
+	SetMasterVolume(0.25);
 	loadRecords(localRecords);
 	for (int i = 0; i < ROCK_MAX; i++)
 		rockPool[i].isLive = 0;

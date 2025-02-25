@@ -1,9 +1,6 @@
 #ifndef RESOURCES_H
 # define RESOURCES_H
 
-void	loadAllTextures();
-void	loadAllFonts();
-
 typedef struct	s_Sounds
 {
 	Sound	bangBgSFX;
@@ -18,8 +15,6 @@ typedef struct	s_Sounds
 	float	thrustVolume;
 }	t_Sounds;
 
-void	loadAllSounds();
-
 typedef struct s_Music
 {
 	Sound	beat1;
@@ -28,5 +23,15 @@ typedef struct s_Music
 }	t_Music;
 
 void	playGameMusic();
+
+void	loadAllResources();
+void	unloadAllResources();
+
+extern t_Sounds	sounds;
+extern t_Music	music;
+extern Font		font64;
+extern Font		fontBold24;
+extern Font		fontBold32;
+extern Texture	rockTextures[12];
 
 #endif

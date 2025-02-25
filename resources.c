@@ -2,9 +2,6 @@
 #include "gameObjects.h"
 #include "resources.h"
 
-extern t_GameState	gameState;
-extern t_PlayerShip	player;
-extern t_Saucer		saucer;
 extern double		time;
 
 t_Sounds	sounds;
@@ -14,7 +11,7 @@ Font		fontBold32;
 Font		fontBold24;
 Texture		rockTextures[12];
 
-void	loadAllTextures()
+static void	loadTextures()
 {
 	rockTextures[0]  = LoadTexture("resources/textures/Rock1-bg.png");
 	rockTextures[1]  = LoadTexture("resources/textures/Rock2-bg.png");
@@ -36,14 +33,30 @@ void	loadAllTextures()
 	saucer.textureSm = LoadTexture("resources/textures/Saucer-sm.png");
 }
 
-void	loadAllFonts()
+static void	unloadTextures()
+{
+	for (int i = 0; i < 12; i++)
+		UnloadTexture(rockTextures[i]);
+	UnloadTexture(player.texture);
+	UnloadTexture(saucer.textureBg);
+	UnloadTexture(saucer.textureSm);
+}
+
+static void	loadFonts()
 {
 	font64     = LoadFontEx("resources/font/font-hyperspace/Hyperspace.otf", 64, (void *)0, 0);
 	fontBold32 = LoadFont("resources/font/font-hyperspace/Hyperspace Bold.otf");
 	fontBold24 = LoadFontEx("resources/font/font-hyperspace/Hyperspace Bold.otf", 24, (void *)0, 0);
 }
 
-void	loadAllSounds()
+static void	unloadFonts()
+{
+	UnloadFont(font64);
+	UnloadFont(fontBold24);
+	UnloadFont(fontBold32);
+}
+
+static void	loadSounds()
 {
 	sounds.bangBgSFX     = LoadSound("resources/sounds/bangLarge.wav");
 	sounds.bangMdSFX     = LoadSound("resources/sounds/bangMedium.wav");
@@ -56,6 +69,35 @@ void	loadAllSounds()
 	sounds.thrust        = LoadSound("resources/sounds/thrust.wav");
 	music.beat1          = LoadSound("resources/sounds/beat1.wav");
 	music.beat2          = LoadSound("resources/sounds/beat2.wav");
+}
+
+static void	unloadSounds()
+{
+	UnloadSound(sounds.bangBgSFX);
+	UnloadSound(sounds.bangMdSFX);
+	UnloadSound(sounds.bangSmSFX);
+	UnloadSound(sounds.extraShipSFX);
+	UnloadSound(sounds.fireSFX);
+	UnloadSound(sounds.saucerFireSFX);
+	UnloadSound(sounds.saucerBg);
+	UnloadSound(sounds.saucerSm);
+	UnloadSound(sounds.thrust);
+	UnloadSound(music.beat1);
+	UnloadSound(music.beat2);
+}
+
+void	loadAllResources()
+{
+	loadTextures();
+	loadFonts();
+	loadSounds();
+}
+
+void	unloadAllResources()
+{
+	unloadSounds();
+	unloadFonts();
+	unloadTextures();
 }
 
 void	playGameMusic()

@@ -5,26 +5,17 @@
 #include "game.h"
 #include "highScore.h"
 #include "postGame.h"
-#include "explosions.h"
 #include "header.h"
-
-/***************************** GLOBAL VARIABLES *******************************/
-
-extern t_GameState	gameState;
 
 double	time;
 float	frameTime;
-
-/************************************ MAIN ************************************/
 
 int	main(void)
 {
 	InitWindow(SC_W, SC_H, "Asteroids");
 	SetTargetFPS(60);
 	InitAudioDevice();
-	loadAllTextures();
-	loadAllFonts();
-	loadAllSounds();
+	loadAllResources();
 
 	while (!WindowShouldClose())
 	{
@@ -69,6 +60,7 @@ int	main(void)
 		EndDrawing();
 	}
 
+	unloadAllResources();
 	CloseAudioDevice();
 	CloseWindow();
 	return (0);

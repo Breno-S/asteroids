@@ -1,10 +1,10 @@
 #ifndef GAMEOBJECTS_H
 # define GAMEOBJECTS_H
 
-#include "raylib.h"
-#include "header.h"
+# include "raylib.h"
+# include "header.h"
 
-#define BULLET_MAX 4
+# define BULLET_MAX 4
 
 // GAMESTATE
 
@@ -125,5 +125,11 @@ typedef struct	s_Record
 unsigned short	loadRecords(t_Record *buffer);
 void			saveRecord(char *initials, unsigned int score);
 void			drawHighScore();
+
+extern t_GameState	gameState;
+extern t_PlayerShip	player;
+extern t_Saucer		saucer;
+extern t_Rock		rockPool[ROCK_MAX];
+extern t_Record		localRecords[10];
 
 #endif

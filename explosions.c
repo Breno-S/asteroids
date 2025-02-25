@@ -1,6 +1,6 @@
-#include "explosions.h"
 #include "raylib.h"
 #include "raymath.h"
+#include "explosions.h"
 
 #define EXPLOSION_MAX 20
 

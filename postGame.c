@@ -5,10 +5,6 @@
 #include <stdio.h>
 #include "postGame.h"
 
-extern Font			fontBold32;
-extern t_GameState	gameState;
-extern t_Saucer		saucer;
-extern t_Record		localRecords[10];
 extern double		time;
 extern float		frameTime;
 

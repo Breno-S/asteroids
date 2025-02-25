@@ -4,10 +4,6 @@
 #include "header.h"
 #include "highScore.h"
 
-extern Font			fontBold32;
-extern Font			font64;
-extern t_GameState	gameState;
-extern t_Record		localRecords[10];
 extern double		time;
 
 char	initials[3] = {'_', '_', '_'};

@@ -1,23 +1,17 @@
 #ifndef HEADER_H
 # define HEADER_H
 
-#include "raylib.h"
+# include "raylib.h"
 
-/*********************************** MACROS ***********************************/
+# define SC_W 640
+# define SC_H 480
 
-#define SC_W 640
-#define SC_H 480
-
-#define ROCK_MAX 44
-#define ROCK_SPAWN_MAX 11
-#define SAVEFILE "./data"
-
-/*********************************** ENUMS ************************************/
+# define ROCK_MAX 44
+# define ROCK_SPAWN_MAX 11
+# define SAVEFILE "./data"
 
 enum e_Size { BIG, MEDIUM, SMALL };
 enum e_GameScreen { TITLE, GAME, HIGHSCORE, POSTGAME };
-
-/*********************************** TYPES ************************************/
 
 typedef struct	s_Circle
 {

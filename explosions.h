@@ -22,4 +22,4 @@ void	explodeAt(Vector2 place);
 void	updateExplosions();
 void	drawExplosions();
 
-#endif /* EXPLOSION_H */
+#endif
