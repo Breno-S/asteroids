@@ -2,6 +2,7 @@
 #include "gameObjects.h"
 #include "resources.h"
 #include "explosions.h"
+#include "header.h"
 #include <stdio.h>
 #include "postGame.h"
 

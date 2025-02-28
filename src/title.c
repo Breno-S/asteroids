@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "gameObjects.h"
+#include "header.h"
 #include "title.h"
 
 void	handleTitleInput()

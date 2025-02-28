@@ -4,8 +4,6 @@
 #include "header.h"
 #include "highScore.h"
 
-extern double		time;
-
 char	initials[3] = {'_', '_', '_'};
 
 void	handleHighScoreInput()
