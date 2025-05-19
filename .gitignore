@@ -1,0 +1,6 @@
+build
+.vscode
+*.o
+records.dat
+*.exe
+*.pdb

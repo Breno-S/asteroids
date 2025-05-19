@@ -1,14 +1,14 @@
+#include "game.h"
+#include "gameState.h"
+#include "highScore.h"
+#include "main.h"
+#include "postGame.h"
 #include "raylib.h"
 #include "resources.h"
-#include "gameObjects.h"
 #include "title.h"
-#include "game.h"
-#include "highScore.h"
-#include "postGame.h"
-#include "header.h"
 
-double	time;
-float	frameTime;
+double	g_time;
+float	g_frameTime;
 
 int	main(void)
 {
@@ -16,13 +16,14 @@ int	main(void)
 	SetTargetFPS(60);
 	InitAudioDevice();
 	loadAllResources();
+	SetWindowIcon(g_windowIcon);
 
 	while (!WindowShouldClose())
 	{
-		frameTime = GetFrameTime();
-		if (!gameState.isPaused)
-			time += frameTime;
-		switch (gameState.currentScreen)
+		g_frameTime = GetFrameTime();
+		if (!g_gameState.isPaused)
+			g_time += g_frameTime;
+		switch (g_gameState.currentScreen)
 		{
 			case TITLE:
 				handleTitleInput();
@@ -42,7 +43,7 @@ int	main(void)
 
 		BeginDrawing();
 			ClearBackground(BLACK);
-			switch (gameState.currentScreen)
+			switch (g_gameState.currentScreen)
 			{
 				case TITLE:
 					drawTitleScreen();

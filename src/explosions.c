@@ -1,11 +1,11 @@
+#include "explosions.h"
+#include "main.h"
 #include "raylib.h"
 #include "raymath.h"
-#include "explosions.h"
 
 #define EXPLOSION_MAX 20
 
-t_Explosion		explosion[EXPLOSION_MAX]; 
-extern float	frameTime;
+static t_Explosion	g_explosion[EXPLOSION_MAX];
 
 void	explodeAt(Vector2 place)
 {
@@ -13,43 +13,47 @@ void	explodeAt(Vector2 place)
 
 	for (int i = 0; i < EXPLOSION_DEBRIS; i++)
 	{
-		explosion[explosionIdx].debris[i].pos = place;
-		explosion[explosionIdx].debris[i].vel.x = GetRandomValue(40, 50);
-		explosion[explosionIdx].debris[i].vel = Vector2Rotate(explosion[explosionIdx].debris[i].vel, GetRandomValue(0, 360) * DEG2RAD);
-		explosion[explosionIdx].isLive = true;
-		explosion[explosionIdx].startTime = GetTime();
+		g_explosion[explosionIdx].debris[i].pos = place;
+		g_explosion[explosionIdx].debris[i].vel.x = GetRandomValue(40, 50);
+		g_explosion[explosionIdx].debris[i].vel = Vector2Rotate(
+			g_explosion[explosionIdx].debris[i].vel,
+			GetRandomValue(0, 360) * DEG2RAD
+		);
+		g_explosion[explosionIdx].isLive = true;
+		g_explosion[explosionIdx].startTime = GetTime();
 	}
 	explosionIdx++;
 	if (explosionIdx == EXPLOSION_MAX)
 		explosionIdx = 0;
 }
 
-void	updateExplosions()
+void	updateExplosions(void)
 {
 	for (int i = 0; i < EXPLOSION_MAX; i++)
 	{
-		if (explosion[i].isLive)
+		if (g_explosion[i].isLive)
 		{
 			for (int j = 0; j < EXPLOSION_DEBRIS; j++)
 			{
-				explosion[i].debris[j].pos = Vector2Add(explosion[i].debris[j].pos, Vector2Scale(explosion[i].debris[j].vel, frameTime));
-				if (GetTime() - explosion[i].startTime > 0.5)
-					explosion[i].isLive = false;
+				g_explosion[i].debris[j].pos = Vector2Add(
+					g_explosion[i].debris[j].pos,
+					Vector2Scale(g_explosion[i].debris[j].vel, g_frameTime)
+				);
+				if (GetTime() - g_explosion[i].startTime > 0.5)
+					g_explosion[i].isLive = false;
 			}
 		}
 	}
 }
 
-void	drawExplosions()
+void	drawExplosions(void)
 {
 	for (int i = 0; i < EXPLOSION_MAX; i++)
 	{
-		if (explosion[i].isLive)
+		if (g_explosion[i].isLive)
 		{
 			for (int j = 0; j < EXPLOSION_DEBRIS; j++)
-			{
-				DrawPixelV(explosion[i].debris[j].pos, GRAY);
-			}
+				DrawPixelV(g_explosion[i].debris[j].pos, GRAY);
 		}
 	}
 }

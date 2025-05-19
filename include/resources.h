@@ -1,7 +1,7 @@
 #ifndef RESOURCES_H
 # define RESOURCES_H
 
-typedef struct	s_Sounds
+typedef struct s_Sounds
 {
 	Sound	bangBgSFX;
 	Sound	bangMdSFX;
@@ -22,16 +22,17 @@ typedef struct s_Music
 	double	rest;
 }	t_Music;
 
-void	playGameMusic();
+void	playGameMusic(void);
 
-void	loadAllResources();
-void	unloadAllResources();
+void	loadAllResources(void);
+void	unloadAllResources(void);
 
-extern t_Sounds	sounds;
-extern t_Music	music;
-extern Font		font64;
-extern Font		fontBold24;
-extern Font		fontBold32;
-extern Texture	rockTextures[12];
+extern t_Sounds	g_sounds;
+extern t_Music	g_music;
+extern Font		g_font64;
+extern Font		g_fontBold24;
+extern Font		g_fontBold32;
+extern Texture	g_rockTextures[12];
+extern Image	g_windowIcon;
 
 #endif

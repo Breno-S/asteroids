@@ -1,23 +1,24 @@
-#include "raylib.h"
-#include "gameObjects.h"
-#include "resources.h"
 #include "explosions.h"
-#include "header.h"
 #include "game.h"
+#include "gameState.h"
+#include "main.h"
+#include "raylib.h"
+#include "records.h"
+#include "resources.h"
+#include "rocks.h"
+#include "playerShip.h"
+#include "saucer.h"
 
-extern double		time;
-extern float		frameTime;
-
-void	handleGameInput()
+void	handleGameInput(void)
 {
-	if (!gameState.isPaused)
+	if (!g_gameState.isPaused)
 	{
-		if (player.isLive && !player.inHyperspace)
+		if (g_player.isLive && !g_player.inHyperspace)
 		{
 			if (IsKeyDown(KEY_D))
-				player.angle += 240 * frameTime;
+				g_player.angle += 240 * g_frameTime;
 			if (IsKeyDown(KEY_A))
-				player.angle -= 240 * frameTime;
+				g_player.angle -= 240 * g_frameTime;
 			if (IsKeyDown(KEY_W))
 				accelerate();
 			else
@@ -30,48 +31,48 @@ void	handleGameInput()
 	}
 	if (IsKeyPressed(KEY_SPACE))
 	{
-		gameState.isPaused = !gameState.isPaused;
-		StopSound(sounds.thrust);
+		g_gameState.isPaused = !g_gameState.isPaused;
+		StopSound(g_sounds.thrust);
 	}
 }
 
-void	updateGame()
+void	updateGame(void)
 {
-	if (!gameState.isPaused)
+	if (!g_gameState.isPaused)
 	{
-		if (player.isLive)
+		if (g_player.isLive)
 		{
 			playGameMusic();
-			if (player.inHyperspace)
+			if (g_player.inHyperspace)
 				exitHyperspace();
 			else
 				handlePlayerCollisions();
 		}
 		else
 		{
-			if (gameState.numLives > 0)
+			if (g_gameState.numLives > 0)
 				playerRespawn();
 			else
-				gameState.isGameOver = true;
+				g_gameState.isGameOver = true;
 		}
-		if (saucer.isLive)
+		if (g_saucer.isLive)
 			handleSaucerCollisions();
 		else
 			requestSaucer();
 		handlePlayerBulletCollisions();
 		handleSaucerBulletCollisions();
-		if (gameState.oneUpMeter >= 10000)
+		if (g_gameState.oneUpMeter >= 10000)
 		{
-			gameState.numLives++;
-			gameState.oneUpMeter -= 10000;
+			g_gameState.numLives++;
+			g_gameState.oneUpMeter -= 10000;
 		}
-		if (gameState.rockCount == 0)
+		if (g_gameState.rockCount == 0)
 			spawnRocks();
-		if (!gameState.isGameOver)
+		if (!g_gameState.isGameOver)
 			updatePlayer();
 		else
 		{
-			if (time - player.deathTime > 5)
+			if (g_time - g_player.deathTime > 5)
 				endSession();
 		}
 		updateSaucer();
@@ -82,7 +83,7 @@ void	updateGame()
 	}
 }
 
-void	drawGameScreen()
+void	drawGameScreen(void)
 {
 	drawPlayer();
 	drawLives();
@@ -93,6 +94,15 @@ void	drawGameScreen()
 	drawScore();
 	drawExplosions();
 	drawHighScore();
-	if (gameState.isGameOver)
-		DrawTextEx(fontBold32, "GAME OVER", (Vector2){SC_W/2 - 74, SC_H/2 - 100}, 32, 1, (Color){127, 127, 127, 255});
+	if (g_gameState.isGameOver)
+	{
+		DrawTextEx(
+			g_fontBold32,
+			"GAME OVER",
+			(Vector2){SC_W / 2 - 74, SC_H / 2 - 100},
+			32,
+			1,
+			(Color){127, 127, 127, 255}
+		);
+	}
 }
