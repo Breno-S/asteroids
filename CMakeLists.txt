@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(asteroids)
+project(game)
 
 include(FetchContent)
 
@@ -28,6 +28,20 @@ add_executable(${PROJECT_NAME}
 	src/saucer.c
 	src/title.c
 )
+
+# Turns off Raylib debug console on Windows. Comment out to enable it
+if (WIN32)
+    if (MSVC)
+        target_link_options(${PROJECT_NAME} PRIVATE 
+            /SUBSYSTEM:WINDOWS
+            /ENTRY:mainCRTStartup
+        )   
+    elseif (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_link_options(${PROJECT_NAME} PRIVATE
+            -Wl,--subsystem,windows
+        )   
+    endif()
+endif()
 
 # Shortcut to build executable into project's root directory
 set_target_properties(${PROJECT_NAME} PROPERTIES
