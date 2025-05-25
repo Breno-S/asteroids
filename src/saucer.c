@@ -88,7 +88,7 @@ void	saucerDie(void)
 	}
 }
 
-static void	spawnBgSaucer()
+static void	spawnBgSaucer(void)
 {
 	g_saucer.size = BIG;
 	g_saucer.hitBox.radius = 10;
