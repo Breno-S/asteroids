@@ -39,6 +39,8 @@ Prerequisites: CMake 3.28+
 
 #### Building Manually
 
+Prerequisites: Raylib 5.5
+
 If you're already familiar with Raylib and C, just make sure the library files are available and compile/link with the appropriate flags. If you're using GCC/Clang, run a command similar to this inside the project root:
 
 ```sh
