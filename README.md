@@ -60,7 +60,7 @@ Replacing `<platform_specific_flags>` as follows:
 
 ## 🕹 How to play
 
-Run the *game* executable inside the project root, where the *assets* folder is located.
+Run the game executable inside the project root, where the *assets* folder is located.
 
 ### Gameplay
 Destroy asteroids and flying saucers to score points while avoiding collisions and enemy fire. Every 10000 points earns you an extra spaceship. Use hyperspace as a last resort to escape certain death, but beware: there's a small chance of exploding upon re-entry.
