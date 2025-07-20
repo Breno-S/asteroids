@@ -29,7 +29,7 @@ void	handleGameInput(void)
 				enterHyperspace();
 		}
 	}
-	if (IsKeyPressed(KEY_SPACE))
+	if (!g_gameState.isGameOver && IsKeyPressed(KEY_SPACE))
 	{
 		g_gameState.isPaused = !g_gameState.isPaused;
 		StopSound(g_sounds.thrust);
@@ -94,6 +94,17 @@ void	drawGameScreen(void)
 	drawScore();
 	drawExplosions();
 	drawHighScore();
+	if (g_gameState.isPaused)
+	{
+		DrawTextEx(
+			g_fontBold32,
+			"PAUSED",
+			(Vector2){SC_W / 2 - 44, SC_H / 2 - 100},
+			32,
+			1,
+			WHITE
+		);
+	}
 	if (g_gameState.isGameOver)
 	{
 		DrawTextEx(
