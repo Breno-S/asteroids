@@ -69,5 +69,5 @@ void	drawHighScore(void)
 		}
 		sprintf(str, "%*u", scoreWidth, g_localRecords[0].score);
 	}
-	DrawTextEx(g_fontBold24, str, (Vector2){SC_W / 2 - 6 * scoreWidth, 0}, 24, 0, GRAY);
+	DrawTextEx(g_fontBold24, str, (Vector2){SC_W / 2 - 6 * scoreWidth, 0}, 24, 0, WHITE);
 }

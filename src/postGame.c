@@ -60,7 +60,7 @@ static void	drawRanking(void)
 		highest /= 10;
 		scoreWidth++;
 	}
-	DrawTextEx(g_fontBold32, "HIGH SCORES", (Vector2){SC_W / 2 - 85, 110}, 32, 0, GRAY);
+	DrawTextEx(g_fontBold32, "HIGH SCORES", (Vector2){SC_W / 2 - 85, 110}, 32, 0, WHITE);
 	for (int i = 0; i < 10; i++)
 	{
 		if (g_localRecords[i].score > 0)
@@ -81,7 +81,7 @@ static void	drawRanking(void)
 				(Vector2){SC_W / 2 - 16 - (16 * rowWidth / 2), 150 + 24 * i},
 				32,
 				0,
-				GRAY
+				WHITE
 			);
 		}
 	}
@@ -101,5 +101,5 @@ void	drawPostGameScreen(void)
 	drawScore();
 	drawHighScore();
 	if ((int)g_time % 2 == 0)
-		DrawTextEx(g_fontBold32, "PUSH ENTER", (Vector2){SC_W / 2 - 77, 60}, 32, 0, GRAY);
+		DrawTextEx(g_fontBold32, "PUSH ENTER", (Vector2){SC_W / 2 - 77, 60}, 32, 0, WHITE);
 }

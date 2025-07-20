@@ -75,7 +75,7 @@ void	drawLives(void)
 			(Rectangle){86 + 10 * i, 42, g_player.currSprite.width, g_player.currSprite.height},
 			g_player.CoM,
 			-90,
-			(Color){255, 255, 255, 127}
+			WHITE
 		);
 	}
 }
@@ -85,5 +85,5 @@ void	drawScore(void)
 	static char	scoreStr[15];
 
 	sprintf(scoreStr, "%8.2u", g_gameState.score);
-	DrawTextEx(g_fontBold32, scoreStr, (Vector2){2, 0}, 32, 0, (Color){255, 255, 255, 127});
+	DrawTextEx(g_fontBold32, scoreStr, (Vector2){2, 0}, 32, 0, WHITE);
 }

@@ -66,8 +66,8 @@ void	drawHighScoreScreen(void)
 	drawScore();
 	drawHighScore();
 	SetTextLineSpacing(-8);
-	DrawTextEx(g_fontBold32, msg, (Vector2){30, SC_H / 2 - 100}, 32, 0, GRAY);
-	DrawTextCodepoint(g_font64, g_initials[0], (Vector2){269, 350}, 64, GRAY);
-	DrawTextCodepoint(g_font64, g_initials[1], (Vector2){307, 350}, 64, GRAY);
-	DrawTextCodepoint(g_font64, g_initials[2], (Vector2){343, 350}, 64, GRAY);
+	DrawTextEx(g_fontBold32, msg, (Vector2){30, SC_H / 2 - 100}, 32, 0, WHITE);
+	DrawTextCodepoint(g_font64, g_initials[0], (Vector2){269, 350}, 64, WHITE);
+	DrawTextCodepoint(g_font64, g_initials[1], (Vector2){307, 350}, 64, WHITE);
+	DrawTextCodepoint(g_font64, g_initials[2], (Vector2){343, 350}, 64, WHITE);
 }

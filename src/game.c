@@ -102,7 +102,7 @@ void	drawGameScreen(void)
 			(Vector2){SC_W / 2 - 74, SC_H / 2 - 100},
 			32,
 			1,
-			(Color){127, 127, 127, 255}
+			WHITE
 		);
 	}
 }
