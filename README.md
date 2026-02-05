@@ -4,7 +4,7 @@ My attempt to clone the classic arcade game *Asteroids* and learn game programmi
 
 ### Download Release
 
-If you just want to play the game, go to the [releases page](https://github.com/Breno-S/asteroids/releases) and download the appropiate version for your platform.
+If you just want to play the game, go to the [releases page](https://github.com/Breno-S/asteroids/releases) and download the appropiate version for your operating system.
 
 ### Build From Source
 
@@ -35,13 +35,13 @@ Prerequisites: CMake 3.28+
 	cmake --build .
 	```
 
-    The first command (CMake configuration) may take a while to complete — it will download Raylib, among other things. The second command builds the executable in the parent directory (the project root).
+    The first command (CMake configuration) may take a while to complete — it will download Raylib, among other things. The second command builds the executable in the project's root directory.
 
 #### Building Manually
 
 Prerequisites: Raylib 5.5
 
-If you're already familiar with Raylib and C, just make sure the library files are available and compile/link with the appropriate flags. If you're using GCC/Clang, run a command similar to this inside the project root:
+If you're already familiar with Raylib and C, just make sure the library files are available then compile and link with the appropriate flags. If you're using GCC/Clang, run a similar command in the project's root directory:
 
 ```sh
 # library and headers globally installed
@@ -53,14 +53,14 @@ cc src/*.c -Iinclude -I<include_directory> -L<library_directory> -lraylib <platf
 
 Replacing `<platform_specific_flags>` as follows:
 
-| Platform | Flags |
+| OS | Flags |
 |-|-|
 | **Windows** | `-lwinmm` `-lgdi32` `-Wl,--subsystem,windows` |
 | **Linux**   | `-lm`     |
 
 ## 🕹 How to play
 
-Run the game executable inside the project root, where the *assets* folder is located.
+Run the game executable inside the project's root directory.
 
 ### Gameplay
 Destroy asteroids and flying saucers to score points while avoiding collisions and enemy fire. Every 10000 points earns you an extra spaceship. Use hyperspace as a last resort to escape certain death, but beware: there's a small chance of exploding upon re-entry.
@@ -69,10 +69,14 @@ Destroy asteroids and flying saucers to score points while avoiding collisions a
 
 ### Controls
 
-- **Movement** - `W` `A` `D`  
-- **Shooting** - `J`  
-- **Hyperspace** - `K`  
-- **Pause** - `SPACE`
+| Action | Key |
+| - | - |
+| Turn left |  `A` |
+| Turn right | `D` |
+| Thrust | `W` |
+| Shoot | `J` |
+| Hyperspace | `K` |
+| Pause | `SPACE` |
 
 ## 📄 License
 
